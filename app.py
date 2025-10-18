@@ -925,7 +925,9 @@ ADMIN_ORDERS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}
 def init_db():
     """Initialise la base de données avec des données de test"""
     with app.app_context():
+        # TOUJOURS créer les tables si elles n'existent pas
         db.create_all()
+        print("✅ Tables vérifiées/créées")
         
         # Créer admin si n'existe pas
         if not Admin.query.first():
@@ -934,16 +936,14 @@ def init_db():
                 password_hash=generate_password_hash('admin123')
             )
             db.session.add(admin)
+            db.session.commit()
             print("✅ Admin créé: username='admin', password='admin123'")
         
-        # Créer des produits de démonstration si n'existent pas
-        if Product.query.count() == 0:
+        # Créer des produits de démonstration si n'existent pas (SEULEMENT en local)
+        if Product.query.count() == 0 and not os.environ.get('DATABASE_URL'):
             demo_products = [
                 Product(name="Noir Extrême", brand="Tom Ford", description="Un parfum oriental boisé intense et sophistiqué pour homme", price=145.00, stock=15, category="Homme", size_ml=100, image_url="https://images.unsplash.com/photo-1541643600914-78b084683601?w=500"),
-                Product(name="La Vie Est Belle", brand="Lancôme", 
-    description="L'essence du bonheur dans un flacon, notes florales et gourmandes", 
-    price=98.00, stock=20, category="Femme", size_ml=50, 
-    image_url="https://tse3.mm.bing.net/th/id/OIP.g64z2H-gSFoHTKoBGWq8WwHaHa?pid=Api&P=0&h=180"),
+                Product(name="La Vie Est Belle", brand="Lancôme", description="L'essence du bonheur dans un flacon, notes florales et gourmandes", price=98.00, stock=20, category="Femme", size_ml=50, image_url="https://tse3.mm.bing.net/th/id/OIP.g64z2H-gSFoHTKoBGWq8WwHaHa?pid=Api&P=0&h=180"),
                 Product(name="Sauvage", brand="Dior", description="Frais, brut et noble. Un parfum puissant inspiré par les grands espaces", price=89.00, stock=25, category="Homme", size_ml=100, image_url="https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=500"),
                 Product(name="Good Girl", brand="Carolina Herrera", description="Audacieux et élégant, mélange de notes florales et ambrées", price=112.00, stock=12, category="Femme", size_ml=80, image_url="https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=500"),
                 Product(name="Aventus", brand="Creed", description="Un parfum frais et fruité célébrant la force et la vision", price=285.00, stock=8, category="Homme", size_ml=100, image_url="https://images.unsplash.com/photo-1594035910387-fea47794261f?w=500"),
@@ -953,10 +953,8 @@ def init_db():
             ]
             for product in demo_products:
                 db.session.add(product)
+            db.session.commit()
             print(f"✅ {len(demo_products)} produits de démonstration créés")
-        
-        db.session.commit()
-        print("✅ Base de données initialisée!")
 
 # ========================================
 # LANCEMENT DE L'APPLICATION
