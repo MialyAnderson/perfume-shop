@@ -1,6 +1,6 @@
 # ========================================
 # FICHIER: app.py
-# Prototype E-commerce Parfums - TOUT EN UN
+# OPALINE PARFUMS - E-commerce Prototype
 # ========================================
 
 from flask import Flask, render_template_string, request, redirect, url_for, session, flash
@@ -15,7 +15,6 @@ import os
 # ========================================
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'votre-cle-secrete-super-longue-123456789'
-import os
 
 # Configuration base de données
 database_url = os.environ.get('DATABASE_URL')
@@ -161,7 +160,6 @@ def checkout():
         return redirect(url_for('catalog'))
     
     if request.method == 'POST':
-        # Créer la commande
         order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{Order.query.count() + 1:03d}"
         
         order = Order(
@@ -180,7 +178,6 @@ def checkout():
         db.session.add(order)
         db.session.commit()
         
-        # Vider le panier
         session['cart'] = []
         session.modified = True
         
@@ -283,7 +280,7 @@ def admin_update_order_status(id):
     return redirect(url_for('admin_orders'))
 
 # ========================================
-# TEMPLATES HTML
+# TEMPLATES HTML - DESIGN NOIR & BLANC
 # ========================================
 
 BASE_TEMPLATE = '''
@@ -292,27 +289,38 @@ BASE_TEMPLATE = '''
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Parfumerie Élégance{% endblock %}</title>
+    <title>{% block title %}OPALINE PARFUMS{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #8b5cf6;
-            --secondary-color: #ec4899;
+            --primary-color: #000000;
+            --secondary-color: #333333;
         }
-        .navbar {background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));}
-        .product-card {transition: transform 0.3s; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.1);}
-        .product-card:hover {transform: translateY(-5px); box-shadow: 0 5px 20px rgba(0,0,0,0.2);}
-        .btn-primary {background: var(--primary-color); border: none;}
-        .btn-primary:hover {background: #7c3aed;}
-        .hero {background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(236,72,153,0.1)); padding: 80px 0;}
-        .footer {background: #1f2937; color: white; padding: 40px 0; margin-top: 60px;}
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; }
+        .navbar { background: #000000; border-bottom: 1px solid #333; }
+        .navbar-brand { font-weight: 700; letter-spacing: 2px; font-size: 1.2rem; }
+        .product-card { transition: transform 0.3s; border: 1px solid #e5e5e5; }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 20px rgba(0,0,0,0.15); }
+        .btn-primary { background: #000000; border: 1px solid #000000; }
+        .btn-primary:hover { background: #333333; border: 1px solid #333333; }
+        .btn-outline-primary { color: #000000; border: 1px solid #000000; }
+        .btn-outline-primary:hover { background: #000000; color: white; }
+        .btn-outline-primary.active { background: #000000; color: white; }
+        .hero { background: linear-gradient(135deg, #f5f5f5, #ffffff); padding: 80px 0; border-bottom: 1px solid #e5e5e5; }
+        .footer { background: #000000; color: white; padding: 40px 0; margin-top: 60px; }
+        .badge { background: #000000 !important; }
+        .text-primary { color: #000000 !important; }
+        .alert-success { background-color: #f0f0f0; border-color: #000000; color: #000000; }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}"><i class="fas fa-spray-can"></i> Parfumerie Élégance</a>
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+		    <img src="https://i.ibb.co/jtSLs1S/IMG-20251018-181823.png" alt="Logo OPALINE" style="height: 120px; margin-right: 12px;">
+		    OPALINE PARFUMS
+	    </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -352,7 +360,8 @@ BASE_TEMPLATE = '''
 
     <footer class="footer">
         <div class="container text-center">
-            <p>&copy; 2025 Parfumerie Élégance. Tous droits réservés.</p>
+            <p class="mb-1" style="letter-spacing: 2px; font-size: 1.1rem;">OPALINE PARFUMS</p>
+            <p class="mb-0">&copy; 2025 Tous droits réservés.</p>
         </div>
     </footer>
 
@@ -365,21 +374,23 @@ INDEX_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
 {% block content %}
 <div class="hero">
     <div class="container text-center">
-        <h1 class="display-3 fw-bold mb-4">Découvrez Votre Signature Olfactive</h1>
-        <p class="lead mb-4">Collection exclusive de parfums de luxe</p>
-        <a href="{{ url_for('catalog') }}" class="btn btn-primary btn-lg"><i class="fas fa-search"></i> Explorer la Collection</a>
+        <h1 class="display-3 fw-bold mb-4" style="color: #000;">Découvrez Votre Signature Olfactive</h1>
+        <p class="lead mb-4" style="color: #333;">Collection exclusive de parfums de luxe</p>
+        <a href="{{ url_for('catalog') }}" class="btn btn-primary btn-lg px-5">
+            <i class="fas fa-search"></i> Explorer la Collection
+        </a>
     </div>
 </div>
 
 <div class="container my-5">
-    <h2 class="text-center mb-5">Nos Parfums Vedettes</h2>
+    <h2 class="text-center mb-5" style="letter-spacing: 2px;">NOS PARFUMS VEDETTES</h2>
     <div class="row g-4">
         {% for product in products %}
         <div class="col-md-4">
             <div class="card product-card h-100">
                 <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="height: 300px; object-fit: cover;">
                 <div class="card-body">
-                    <span class="badge bg-secondary mb-2">{{ product.category }}</span>
+                    <span class="badge mb-2">{{ product.category }}</span>
                     <h5 class="card-title">{{ product.name }}</h5>
                     <p class="text-muted mb-2">{{ product.brand }}</p>
                     <p class="card-text text-truncate">{{ product.description }}</p>
@@ -416,7 +427,7 @@ CATALOG_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', ''
             <div class="card product-card h-100">
                 <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="height: 250px; object-fit: cover;">
                 <div class="card-body">
-                    <span class="badge bg-secondary mb-2">{{ product.category }}</span>
+                    <span class="badge mb-2">{{ product.category }}</span>
                     <h6 class="card-title">{{ product.name }}</h6>
                     <p class="text-muted small mb-2">{{ product.brand }} - {{ product.size_ml }}ml</p>
                     <div class="d-flex justify-content-between align-items-center">
@@ -442,7 +453,7 @@ PRODUCT_DETAIL_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
             <img src="{{ product.image_url }}" class="img-fluid rounded" alt="{{ product.name }}">
         </div>
         <div class="col-md-6">
-            <span class="badge bg-secondary mb-3">{{ product.category }}</span>
+            <span class="badge mb-3">{{ product.category }}</span>
             <h2>{{ product.name }}</h2>
             <h4 class="text-muted mb-3">{{ product.brand }}</h4>
             <h3 class="text-primary mb-4">{{ "%.2f"|format(product.price) }}€</h3>
@@ -603,7 +614,7 @@ ORDER_SUCCESS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %
 {% block content %}
 <div class="container my-5 text-center">
     <div class="mb-4">
-        <i class="fas fa-check-circle text-success" style="font-size: 80px;"></i>
+        <i class="fas fa-check-circle" style="font-size: 80px; color: #000;"></i>
     </div>
     <h2>Commande Confirmée!</h2>
     <p class="lead">Merci pour votre achat</p>
@@ -665,7 +676,7 @@ ADMIN_DASHBOARD_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h3 class="text-success">{{ "%.2f"|format(total_revenue) }}€</h3>
+                    <h3 style="color: #000;">{{ "%.2f"|format(total_revenue) }}€</h3>
                     <p class="text-muted">Chiffre d'Affaires</p>
                 </div>
             </div>
@@ -673,7 +684,7 @@ ADMIN_DASHBOARD_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h3 class="text-warning">{{ pending_orders }}</h3>
+                    <h3 style="color: #666;">{{ pending_orders }}</h3>
                     <p class="text-muted">En Attente</p>
                 </div>
             </div>
@@ -681,7 +692,7 @@ ADMIN_DASHBOARD_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h3 class="text-info">{{ total_products }}</h3>
+                    <h3 style="color: #333;">{{ total_products }}</h3>
                     <p class="text-muted">Produits</p>
                 </div>
             </div>
@@ -708,7 +719,7 @@ ADMIN_DASHBOARD_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock
                                 <td>{{ order.order_number }}</td>
                                 <td>{{ order.customer_first_name }} {{ order.customer_last_name }}</td>
                                 <td>{{ "%.2f"|format(order.total_amount) }}€</td>
-                                <td><span class="badge bg-success">{{ order.status }}</span></td>
+                                <td><span class="badge">{{ order.status }}</span></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -723,10 +734,10 @@ ADMIN_DASHBOARD_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock
                     <a href="{{ url_for('admin_add_product') }}" class="btn btn-primary w-100 mb-2">
                         <i class="fas fa-plus"></i> Ajouter un Produit
                     </a>
-                    <a href="{{ url_for('admin_products') }}" class="btn btn-secondary w-100 mb-2">
+                    <a href="{{ url_for('admin_products') }}" class="btn btn-outline-primary w-100 mb-2">
                         <i class="fas fa-box"></i> Gérer les Produits
                     </a>
-                    <a href="{{ url_for('admin_orders') }}" class="btn btn-info w-100">
+                    <a href="{{ url_for('admin_orders') }}" class="btn btn-outline-primary w-100">
                         <i class="fas fa-shopping-bag"></i> Voir les Commandes
                     </a>
                 </div>
@@ -766,13 +777,13 @@ ADMIN_PRODUCTS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
                     <td><img src="{{ product.image_url }}" style="width: 50px; height: 50px; object-fit: cover;" class="rounded"></td>
                     <td>{{ product.name }}</td>
                     <td>{{ product.brand }}</td>
-                    <td><span class="badge bg-secondary">{{ product.category }}</span></td>
+                    <td><span class="badge">{{ product.category }}</span></td>
                     <td>{{ "%.2f"|format(product.price) }}€</td>
                     <td>
                         {% if product.stock < 5 %}
                         <span class="badge bg-danger">{{ product.stock }}</span>
                         {% else %}
-                        <span class="badge bg-success">{{ product.stock }}</span>
+                        <span class="badge">{{ product.stock }}</span>
                         {% endif %}
                     </td>
                     <td>
@@ -866,7 +877,7 @@ ADMIN_ADD_PRODUCT_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblo
             <button type="submit" class="btn btn-primary">
                 <i class="fas fa-save"></i> Enregistrer
             </button>
-            <a href="{{ url_for('admin_products') }}" class="btn btn-secondary">Annuler</a>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-outline-primary">Annuler</a>
         </div>
     </form>
 </div>
@@ -925,11 +936,9 @@ ADMIN_ORDERS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}
 def init_db():
     """Initialise la base de données avec des données de test"""
     with app.app_context():
-        # TOUJOURS créer les tables si elles n'existent pas
         db.create_all()
         print("✅ Tables vérifiées/créées")
         
-        # Créer admin si n'existe pas
         if not Admin.query.first():
             admin = Admin(
                 username='admin',
@@ -939,11 +948,10 @@ def init_db():
             db.session.commit()
             print("✅ Admin créé: username='admin', password='admin123'")
         
-        # Créer des produits de démonstration si n'existent pas (SEULEMENT en local)
-        if Product.query.count() == 0 :
+        if Product.query.count() == 0:
             demo_products = [
                 Product(name="Noir Extrême", brand="Tom Ford", description="Un parfum oriental boisé intense et sophistiqué pour homme", price=145.00, stock=15, category="Homme", size_ml=100, image_url="https://images.unsplash.com/photo-1541643600914-78b084683601?w=500"),
-                Product(name="La Vie Est Belle", brand="Lancôme", description="L'essence du bonheur dans un flacon, notes florales et gourmandes", price=98.00, stock=20, category="Femme", size_ml=50, image_url="https://tse3.mm.bing.net/th/id/OIP.g64z2H-gSFoHTKoBGWq8WwHaHa?pid=Api&P=0&h=180"),
+                Product(name="La Vie Est Belle", brand="Lancôme", description="L'essence du bonheur dans un flacon, notes florales et gourmandes", price=98.00, stock=20, category="Femme", size_ml=50, image_url="https://images.unsplash.com/photo-1588405748880-12d1d2a59cca?w=500"),
                 Product(name="Sauvage", brand="Dior", description="Frais, brut et noble. Un parfum puissant inspiré par les grands espaces", price=89.00, stock=25, category="Homme", size_ml=100, image_url="https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=500"),
                 Product(name="Good Girl", brand="Carolina Herrera", description="Audacieux et élégant, mélange de notes florales et ambrées", price=112.00, stock=12, category="Femme", size_ml=80, image_url="https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=500"),
                 Product(name="Aventus", brand="Creed", description="Un parfum frais et fruité célébrant la force et la vision", price=285.00, stock=8, category="Homme", size_ml=100, image_url="https://images.unsplash.com/photo-1594035910387-fea47794261f?w=500"),
@@ -956,14 +964,12 @@ def init_db():
             db.session.commit()
             print(f"✅ {len(demo_products)} produits de démonstration créés")
 
-# ========================================
-# LANCEMENT DE L'APPLICATION
-# ========================================
+# Initialiser la DB au démarrage
 init_db()
 
 if __name__ == '__main__':    
     print("\n" + "="*50)
-    print("🚀 SERVEUR DÉMARRÉ!")
+    print("🚀 OPALINE PARFUMS - SERVEUR DÉMARRÉ!")
     print("="*50)
     print("\n📱 Accès:")
     print("   Site Public: http://localhost:5000")
