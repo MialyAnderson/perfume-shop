@@ -959,9 +959,9 @@ def init_db():
 # ========================================
 # LANCEMENT DE L'APPLICATION
 # ========================================
+init_db()
 
-if __name__ == '__main__':
-    init_db()
+if __name__ == '__main__':    
     print("\n" + "="*50)
     print("🚀 SERVEUR DÉMARRÉ!")
     print("="*50)
