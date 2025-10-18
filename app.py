@@ -940,7 +940,7 @@ def init_db():
             print("✅ Admin créé: username='admin', password='admin123'")
         
         # Créer des produits de démonstration si n'existent pas (SEULEMENT en local)
-        if Product.query.count() == 0 and not os.environ.get('DATABASE_URL'):
+        if Product.query.count() == 0 :
             demo_products = [
                 Product(name="Noir Extrême", brand="Tom Ford", description="Un parfum oriental boisé intense et sophistiqué pour homme", price=145.00, stock=15, category="Homme", size_ml=100, image_url="https://images.unsplash.com/photo-1541643600914-78b084683601?w=500"),
                 Product(name="La Vie Est Belle", brand="Lancôme", description="L'essence du bonheur dans un flacon, notes florales et gourmandes", price=98.00, stock=20, category="Femme", size_ml=50, image_url="https://tse3.mm.bing.net/th/id/OIP.g64z2H-gSFoHTKoBGWq8WwHaHa?pid=Api&P=0&h=180"),
