@@ -1,6 +1,6 @@
 # ========================================
 # FICHIER: app.py
-# OPALINE PARFUMS - E-commerce Prototype
+# OPALINE PARFUMS - E-commerce avec Avis Clients
 # ========================================
 
 from flask import Flask, render_template_string, request, redirect, url_for, session, flash
@@ -64,6 +64,16 @@ class Order(db.Model):
     status = db.Column(db.String(20), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Review(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    author_name = db.Column(db.String(100), default='Anonyme')
+    rating = db.Column(db.Integer, nullable=False)  # 1 à 5
+    comment = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    product = db.relationship('Product', backref='reviews')
+
 @login_manager.user_loader
 def load_user(user_id):
     return Admin.query.get(int(user_id))
@@ -121,6 +131,27 @@ def catalog():
 def product_detail(id):
     product = Product.query.get_or_404(id)
     return render_template_string(PRODUCT_DETAIL_TEMPLATE, product=product)
+
+@app.route('/product/<int:id>/review', methods=['POST'])
+def add_review(id):
+    product = Product.query.get_or_404(id)
+    
+    author_name = request.form.get('author_name', '').strip()
+    if not author_name:
+        author_name = 'Anonyme'
+    
+    review = Review(
+        product_id=id,
+        author_name=author_name,
+        rating=int(request.form['rating']),
+        comment=request.form['comment']
+    )
+    
+    db.session.add(review)
+    db.session.commit()
+    
+    flash('Merci pour votre avis !', 'success')
+    return redirect(url_for('product_detail', id=id))
 
 @app.route('/cart')
 def view_cart():
@@ -280,7 +311,7 @@ def admin_update_order_status(id):
     return redirect(url_for('admin_orders'))
 
 # ========================================
-# TEMPLATES HTML - DESIGN NOIR & BLANC
+# TEMPLATES HTML
 # ========================================
 
 BASE_TEMPLATE = '''
@@ -318,9 +349,9 @@ BASE_TEMPLATE = '''
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
-		    <img src="https://i.ibb.co/jtSLs1S/IMG-20251018-181823.png" alt="Logo OPALINE" style="height: 120px; margin-right: 12px;">
-		    OPALINE PARFUMS
-	    </a>
+                <img src="https://i.ibb.co/jtSLs1S/IMG-20251018-181823.png" alt="Logo OPALINE" style="height: 50px; margin-right: 12px;">
+                OPALINE PARFUMS
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -393,6 +424,19 @@ INDEX_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
                     <span class="badge mb-2">{{ product.category }}</span>
                     <h5 class="card-title">{{ product.name }}</h5>
                     <p class="text-muted mb-2">{{ product.brand }}</p>
+                    
+                    {% set avg_rating = product.reviews|map(attribute='rating')|sum / product.reviews|length if product.reviews|length > 0 else 0 %}
+                    {% if product.reviews|length > 0 %}
+                    <div class="mb-2">
+                        <span style="color: gold; font-size: 0.9rem;">
+                            {% for i in range(5) %}
+                                {% if i < avg_rating|round %}★{% else %}☆{% endif %}
+                            {% endfor %}
+                        </span>
+                        <small class="text-muted">({{ product.reviews|length }})</small>
+                    </div>
+                    {% endif %}
+                    
                     <p class="card-text text-truncate">{{ product.description }}</p>
                     <div class="d-flex justify-content-between align-items-center">
                         <h4 class="text-primary mb-0">{{ "%.2f"|format(product.price) }}€</h4>
@@ -425,18 +469,33 @@ CATALOG_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', ''
         {% for product in products %}
         <div class="col-md-3">
             <div class="card product-card h-100">
-                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="height: 250px; object-fit: cover;">
-                <div class="card-body">
-                    <span class="badge mb-2">{{ product.category }}</span>
-                    <h6 class="card-title">{{ product.name }}</h6>
-                    <p class="text-muted small mb-2">{{ product.brand }} - {{ product.size_ml }}ml</p>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="text-primary mb-0">{{ "%.2f"|format(product.price) }}€</h5>
-                        <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-cart-plus"></i>
-                        </a>
+                <a href="{{ url_for('product_detail', id=product.id) }}" style="text-decoration: none; color: inherit;">
+                    <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="height: 250px; object-fit: cover;">
+                    <div class="card-body">
+                        <span class="badge mb-2">{{ product.category }}</span>
+                        <h6 class="card-title">{{ product.name }}</h6>
+                        <p class="text-muted small mb-2">{{ product.brand }} - {{ product.size_ml }}ml</p>
+                        
+                        {% set avg_rating = product.reviews|map(attribute='rating')|sum / product.reviews|length if product.reviews|length > 0 else 0 %}
+                        {% if product.reviews|length > 0 %}
+                        <div class="mb-2">
+                            <span style="color: gold; font-size: 0.8rem;">
+                                {% for i in range(5) %}
+                                    {% if i < avg_rating|round %}★{% else %}☆{% endif %}
+                                {% endfor %}
+                            </span>
+                            <small class="text-muted">({{ product.reviews|length }})</small>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="text-primary mb-0">{{ "%.2f"|format(product.price) }}€</h5>
+                            <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-sm btn-primary" onclick="event.stopPropagation();">
+                                <i class="fas fa-cart-plus"></i>
+                            </a>
+                        </div>
                     </div>
-                </div>
+                </a>
             </div>
         </div>
         {% endfor %}
@@ -456,6 +515,19 @@ PRODUCT_DETAIL_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
             <span class="badge mb-3">{{ product.category }}</span>
             <h2>{{ product.name }}</h2>
             <h4 class="text-muted mb-3">{{ product.brand }}</h4>
+            
+            {% set avg_rating = product.reviews|map(attribute='rating')|sum / product.reviews|length if product.reviews|length > 0 else 0 %}
+            {% if product.reviews|length > 0 %}
+            <div class="mb-3">
+                <span style="color: gold; font-size: 1.2rem;">
+                    {% for i in range(5) %}
+                        {% if i < avg_rating|round %}★{% else %}☆{% endif %}
+                    {% endfor %}
+                </span>
+                <span class="text-muted">({{ product.reviews|length }} avis - {{ "%.1f"|format(avg_rating) }}/5)</span>
+            </div>
+            {% endif %}
+            
             <h3 class="text-primary mb-4">{{ "%.2f"|format(product.price) }}€</h3>
             <p class="mb-4">{{ product.description }}</p>
             <p><strong>Taille:</strong> {{ product.size_ml }}ml</p>
@@ -465,7 +537,95 @@ PRODUCT_DETAIL_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
             </a>
         </div>
     </div>
+    
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="mb-4">Avis Clients</h3>
+            
+            <div class="card mb-4">
+                <div class="card-header"><h5>Laisser un avis</h5></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_review', id=product.id) }}">
+                        <div class="mb-3">
+                            <label class="form-label">Nom et Prénom (optionnel)</label>
+                            <input type="text" class="form-control" name="author_name" placeholder="Laissez vide pour rester anonyme">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Note *</label>
+                            <div class="star-rating">
+                                <input type="radio" id="star5" name="rating" value="5" required>
+                                <label for="star5">★</label>
+                                <input type="radio" id="star4" name="rating" value="4">
+                                <label for="star4">★</label>
+                                <input type="radio" id="star3" name="rating" value="3">
+                                <label for="star3">★</label>
+                                <input type="radio" id="star2" name="rating" value="2">
+                                <label for="star2">★</label>
+                                <input type="radio" id="star1" name="rating" value="1">
+                                <label for="star1">★</label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Votre avis *</label>
+                            <textarea class="form-control" name="comment" rows="4" required placeholder="Partagez votre expérience avec ce parfum..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Publier mon avis</button>
+                    </form>
+                </div>
+            </div>
+            
+            {% if product.reviews %}
+            <div class="reviews-list">
+                {% for review in product.reviews|reverse %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1"><strong>{{ review.author_name }}</strong></h6>
+                                <div class="mb-2">
+                                    <span style="color: gold;">
+                                        {% for i in range(review.rating) %}★{% endfor %}
+                                        {% for i in range(5 - review.rating) %}☆{% endfor %}
+                                    </span>
+                                </div>
+                                <p class="mb-0">{{ review.comment }}</p>
+                            </div>
+                            <small class="text-muted">{{ review.created_at.strftime('%d/%m/%Y') }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">Aucun avis pour le moment. Soyez le premier à donner votre avis !</p>
+            {% endif %}
+        </div>
+    </div>
 </div>
+
+<style>
+.star-rating {
+    direction: rtl;
+    display: inline-flex;
+    font-size: 2rem;
+}
+.star-rating input {
+    display: none;
+}
+.star-rating label {
+    color: #ddd;
+    cursor: pointer;
+    margin: 0 2px;
+}
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: gold;
+}
+</style>
 {% endblock %}
 ''')
 
@@ -768,6 +928,7 @@ ADMIN_PRODUCTS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
                     <th>Catégorie</th>
                     <th>Prix</th>
                     <th>Stock</th>
+                    <th>Avis</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -784,6 +945,14 @@ ADMIN_PRODUCTS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
                         <span class="badge bg-danger">{{ product.stock }}</span>
                         {% else %}
                         <span class="badge">{{ product.stock }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set avg_rating = product.reviews|map(attribute='rating')|sum / product.reviews|length if product.reviews|length > 0 else 0 %}
+                        {% if product.reviews|length > 0 %}
+                        <span style="color: gold;">★ {{ "%.1f"|format(avg_rating) }}</span> ({{ product.reviews|length }})
+                        {% else %}
+                        <span class="text-muted">Aucun</span>
                         {% endif %}
                     </td>
                     <td>
