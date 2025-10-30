@@ -15,6 +15,14 @@ import os
 # ========================================
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'votre-cle-secrete-super-longue-123456789'
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+# Créer le dossier uploads s'il n'existe pas
+import os
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
 
 # Configuration base de données
 database_url = os.environ.get('DATABASE_URL')
@@ -81,6 +89,24 @@ def load_user(user_id):
 # ========================================
 # HELPERS
 # ========================================
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_uploaded_file(file):
+    """Sauvegarde un fichier uploadé et retourne le chemin relatif"""
+    if file and allowed_file(file.filename):
+        from werkzeug.utils import secure_filename
+        import uuid
+        
+        # Créer un nom de fichier unique
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        file.save(filepath)
+        return f"/{filepath}"  # Retourne le chemin relatif
+    return None
 
 def get_cart():
     if 'cart' not in session:
@@ -225,6 +251,22 @@ def order_success(order_number):
     return render_template_string(ORDER_SUCCESS_TEMPLATE, order=order)
 
 # ========================================
+# ROUTES PAGES LÉGALES
+# ========================================
+
+@app.route('/politique-confidentialite')
+def privacy_policy():
+    return render_template_string(PRIVACY_POLICY_TEMPLATE)
+
+@app.route('/conditions-vente')
+def terms_of_sale():
+    return render_template_string(TERMS_OF_SALE_TEMPLATE)
+
+@app.route('/mentions-legales')
+def legal_notice():
+    return render_template_string(LEGAL_NOTICE_TEMPLATE)
+
+# ========================================
 # ROUTES ADMIN
 # ========================================
 
@@ -270,6 +312,17 @@ def admin_products():
 @login_required
 def admin_add_product():
     if request.method == 'POST':
+        # Gérer l'upload de l'image
+        image_url = None
+        if 'image' in request.files:
+            file = request.files['image']
+            if file.filename != '':
+                image_url = save_uploaded_file(file)
+        
+        if not image_url:
+            flash('Veuillez sélectionner une image', 'danger')
+            return redirect(url_for('admin_add_product'))
+        
         product = Product(
             name=request.form['name'],
             brand=request.form['brand'],
@@ -278,7 +331,7 @@ def admin_add_product():
             stock=int(request.form['stock']),
             category=request.form['category'],
             size_ml=int(request.form['size_ml']),
-            image_url=request.form['image_url']
+            image_url=image_url
         )
         db.session.add(product)
         db.session.commit()
@@ -343,6 +396,28 @@ BASE_TEMPLATE = '''
         .badge { background: #000000 !important; }
         .text-primary { color: #000000 !important; }
         .alert-success { background-color: #f0f0f0; border-color: #000000; color: #000000; }
+        
+        /* CSS POUR LES ÉTOILES CLIQUABLES - CRITIQUE POUR LES AVIS ! */
+        .star-rating {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+            font-size: 2rem;
+            gap: 5px;
+        }
+        .star-rating input[type="radio"] {
+            display: none;
+        }
+        .star-rating label {
+            cursor: pointer;
+            color: #ddd;
+            transition: color 0.2s;
+        }
+        .star-rating label:hover,
+        .star-rating label:hover ~ label,
+        .star-rating input[type="radio"]:checked ~ label {
+            color: #ffc107;
+        }
     </style>
 </head>
 <body>
@@ -390,9 +465,18 @@ BASE_TEMPLATE = '''
     {% block content %}{% endblock %}
 
     <footer class="footer">
-        <div class="container text-center">
-            <p class="mb-1" style="letter-spacing: 2px; font-size: 1.1rem;">OPALINE PARFUMS</p>
-            <p class="mb-0">&copy; 2025 Tous droits réservés.</p>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 text-center text-md-start mb-3 mb-md-0">
+                    <p class="mb-1" style="letter-spacing: 2px; font-size: 1.1rem;">OPALINE PARFUMS</p>
+                    <p class="mb-0">&copy; 2025 Tous droits réservés.</p>
+                </div>
+                <div class="col-md-8 text-center text-md-end">
+                    <a href="{{ url_for('privacy_policy') }}" class="text-white text-decoration-none me-3">Politique de confidentialité</a>
+                    <a href="{{ url_for('terms_of_sale') }}" class="text-white text-decoration-none me-3">Conditions de vente</a>
+                    <a href="{{ url_for('legal_notice') }}" class="text-white text-decoration-none">Mentions légales</a>
+                </div>
+            </div>
         </div>
     </footer>
 
@@ -419,31 +503,35 @@ INDEX_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
         {% for product in products %}
         <div class="col-md-4">
             <div class="card product-card h-100">
-                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="height: 300px; object-fit: cover;">
-                <div class="card-body">
-                    <span class="badge mb-2">{{ product.category }}</span>
-                    <h5 class="card-title">{{ product.name }}</h5>
-                    <p class="text-muted mb-2">{{ product.brand }}</p>
-                    
-                    {% set avg_rating = product.reviews|map(attribute='rating')|sum / product.reviews|length if product.reviews|length > 0 else 0 %}
-                    {% if product.reviews|length > 0 %}
-                    <div class="mb-2">
-                        <span style="color: gold; font-size: 0.9rem;">
-                            {% for i in range(5) %}
-                                {% if i < avg_rating|round %}★{% else %}☆{% endif %}
-                            {% endfor %}
-                        </span>
-                        <small class="text-muted">({{ product.reviews|length }})</small>
+                <a href="{{ url_for('product_detail', id=product.id) }}" style="text-decoration: none; color: inherit;">
+                    <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="height: 300px; object-fit: cover;">
+                    <div class="card-body">
+                        <span class="badge mb-2">{{ product.category }}</span>
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="text-muted mb-2">{{ product.brand }}</p>
+                        
+                        {% set avg_rating = product.reviews|map(attribute='rating')|sum / product.reviews|length if product.reviews|length > 0 else 0 %}
+                        {% if product.reviews|length > 0 %}
+                        <div class="mb-2">
+                            <span style="color: gold; font-size: 0.9rem;">
+                                {% for i in range(5) %}
+                                    {% if i < avg_rating|round %}★{% else %}☆{% endif %}
+                                {% endfor %}
+                            </span>
+                            <small class="text-muted">({{ product.reviews|length }})</small>
+                        </div>
+                        {% endif %}
+                        
+                        <p class="card-text text-truncate">{{ product.description }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="text-primary mb-0">{{ "%.2f"|format(product.price) }}€</h4>
+                        </div>
                     </div>
-                    {% endif %}
-                    
-                    <p class="card-text text-truncate">{{ product.description }}</p>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h4 class="text-primary mb-0">{{ "%.2f"|format(product.price) }}€</h4>
-                        <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-primary">
-                            <i class="fas fa-cart-plus"></i> Ajouter
-                        </a>
-                    </div>
+                </a>
+                <div class="card-footer bg-white border-0 pt-0">
+                    <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-primary w-100">
+                        <i class="fas fa-cart-plus"></i> Ajouter au Panier
+                    </a>
                 </div>
             </div>
         </div>
@@ -547,7 +635,7 @@ PRODUCT_DETAIL_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('add_review', id=product.id) }}">
                         <div class="mb-3">
-                            <label class="form-label">Nom et Prénom (optionnel)</label>
+                            <label class="form-label">Votre nom (optionnel)</label>
                             <input type="text" class="form-control" name="author_name" placeholder="Laissez vide pour rester anonyme">
                         </div>
                         
@@ -605,44 +693,24 @@ PRODUCT_DETAIL_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
         </div>
     </div>
 </div>
-
-<style>
-.star-rating {
-    direction: rtl;
-    display: inline-flex;
-    font-size: 2rem;
-}
-.star-rating input {
-    display: none;
-}
-.star-rating label {
-    color: #ddd;
-    cursor: pointer;
-    margin: 0 2px;
-}
-.star-rating input:checked ~ label,
-.star-rating label:hover,
-.star-rating label:hover ~ label {
-    color: gold;
-}
-</style>
 {% endblock %}
 ''')
 
 CART_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
 {% block content %}
 <div class="container my-5">
-    <h2 class="mb-4">Mon Panier</h2>
+    <h2 class="mb-4"><i class="fas fa-shopping-cart"></i> Mon Panier</h2>
+    
     {% if items %}
     <div class="table-responsive">
         <table class="table">
             <thead>
                 <tr>
                     <th>Produit</th>
-                    <th>Prix</th>
+                    <th>Prix unitaire</th>
                     <th>Quantité</th>
                     <th>Sous-total</th>
-                    <th></th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -650,7 +718,7 @@ CART_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
                 <tr>
                     <td>
                         <div class="d-flex align-items-center">
-                            <img src="{{ item.product.image_url }}" style="width: 60px; height: 60px; object-fit: cover;" class="me-3 rounded">
+                            <img src="{{ item.product.image_url }}" style="width: 60px; height: 60px; object-fit: cover;" class="rounded me-3">
                             <div>
                                 <strong>{{ item.product.name }}</strong><br>
                                 <small class="text-muted">{{ item.product.brand }}</small>
@@ -661,7 +729,8 @@ CART_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
                     <td>{{ item.quantity }}</td>
                     <td><strong>{{ "%.2f"|format(item.subtotal) }}€</strong></td>
                     <td>
-                        <a href="{{ url_for('remove_from_cart', product_id=item.product.id) }}" class="btn btn-sm btn-danger">
+                        <a href="{{ url_for('remove_from_cart', product_id=item.product.id) }}" 
+                           class="btn btn-sm btn-danger">
                             <i class="fas fa-trash"></i>
                         </a>
                     </td>
@@ -670,20 +739,24 @@ CART_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="3" class="text-end"><h4>Total:</h4></td>
-                    <td colspan="2"><h4 class="text-primary">{{ "%.2f"|format(total) }}€</h4></td>
+                    <th colspan="3" class="text-end">Total:</th>
+                    <th colspan="2"><h4 class="text-primary mb-0">{{ "%.2f"|format(total) }}€</h4></th>
                 </tr>
             </tfoot>
         </table>
     </div>
-    <div class="text-end">
-        <a href="{{ url_for('catalog') }}" class="btn btn-outline-secondary">Continuer mes Achats</a>
-        <a href="{{ url_for('checkout') }}" class="btn btn-primary btn-lg">Commander <i class="fas fa-arrow-right"></i></a>
+    
+    <div class="d-flex justify-content-between mt-4">
+        <a href="{{ url_for('catalog') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Continuer mes achats
+        </a>
+        <a href="{{ url_for('checkout') }}" class="btn btn-primary btn-lg">
+            <i class="fas fa-credit-card"></i> Passer la commande
+        </a>
     </div>
     {% else %}
     <div class="alert alert-info">
-        <i class="fas fa-shopping-cart"></i> Votre panier est vide.
-        <a href="{{ url_for('catalog') }}" class="alert-link">Découvrir nos produits</a>
+        Votre panier est vide. <a href="{{ url_for('catalog') }}">Découvrez nos produits</a>
     </div>
     {% endif %}
 </div>
@@ -693,60 +766,60 @@ CART_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
 CHECKOUT_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
 {% block content %}
 <div class="container my-5">
-    <h2 class="mb-4">Finaliser la Commande</h2>
+    <h2 class="mb-4"><i class="fas fa-credit-card"></i> Finaliser la commande</h2>
+    
     <div class="row">
         <div class="col-md-8">
-            <form method="POST">
-                <div class="card mb-4">
-                    <div class="card-header"><h5>Informations Client</h5></div>
-                    <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header"><h5>Informations de livraison</h5></div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Prénom *</label>
                                 <input type="text" class="form-control" name="first_name" required>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Nom *</label>
                                 <input type="text" class="form-control" name="last_name" required>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email *</label>
-                            <input type="email" class="form-control" name="email" required>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email *</label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Téléphone *</label>
+                                <input type="tel" class="form-control" name="phone" required>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Téléphone *</label>
-                            <input type="tel" class="form-control" name="phone" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card mb-4">
-                    <div class="card-header"><h5>Adresse de Livraison</h5></div>
-                    <div class="card-body">
+                        
                         <div class="mb-3">
                             <label class="form-label">Adresse *</label>
                             <input type="text" class="form-control" name="address" required>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Ville *</label>
                                 <input type="text" class="form-control" name="city" required>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Code Postal *</label>
                                 <input type="text" class="form-control" name="postal_code" required>
                             </div>
                         </div>
-                    </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-check"></i> Confirmer la commande
+                        </button>
+                    </form>
                 </div>
-
-                <button type="submit" class="btn btn-primary btn-lg w-100">
-                    <i class="fas fa-credit-card"></i> Payer {{ "%.2f"|format(total) }}€
-                </button>
-            </form>
+            </div>
         </div>
-
+        
         <div class="col-md-4">
             <div class="card">
                 <div class="card-header"><h5>Récapitulatif</h5></div>
@@ -760,7 +833,7 @@ CHECKOUT_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '
                     <hr>
                     <div class="d-flex justify-content-between">
                         <strong>Total:</strong>
-                        <strong class="text-primary">{{ "%.2f"|format(total) }}€</strong>
+                        <h4 class="text-primary mb-0">{{ "%.2f"|format(total) }}€</h4>
                     </div>
                 </div>
             </div>
@@ -772,20 +845,247 @@ CHECKOUT_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '
 
 ORDER_SUCCESS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
 {% block content %}
-<div class="container my-5 text-center">
-    <div class="mb-4">
-        <i class="fas fa-check-circle" style="font-size: 80px; color: #000;"></i>
+<div class="container my-5">
+    <div class="text-center">
+        <i class="fas fa-check-circle" style="font-size: 5rem; color: #28a745;"></i>
+        <h2 class="mt-4">Commande confirmée !</h2>
+        <p class="lead">Merci pour votre achat</p>
     </div>
-    <h2>Commande Confirmée!</h2>
-    <p class="lead">Merci pour votre achat</p>
-    <div class="card mx-auto" style="max-width: 500px;">
+    
+    <div class="card mt-5 mx-auto" style="max-width: 600px;">
+        <div class="card-header"><h5>Détails de la commande</h5></div>
         <div class="card-body">
-            <h4>Numéro de commande: {{ order.order_number }}</h4>
-            <p class="mb-2">Total: <strong>{{ "%.2f"|format(order.total_amount) }}€</strong></p>
-            <p class="text-muted">Un email de confirmation a été envoyé à {{ order.customer_email }}</p>
+            <p><strong>Numéro de commande:</strong> {{ order.order_number }}</p>
+            <p><strong>Montant total:</strong> {{ "%.2f"|format(order.total_amount) }}€</p>
+            <p><strong>Statut:</strong> <span class="badge bg-success">{{ order.status }}</span></p>
+            <hr>
+            <h6>Informations de livraison:</h6>
+            <p class="mb-1">{{ order.customer_first_name }} {{ order.customer_last_name }}</p>
+            <p class="mb-1">{{ order.shipping_address }}</p>
+            <p class="mb-1">{{ order.shipping_postal_code }} {{ order.shipping_city }}</p>
+            <p class="mb-0">{{ order.customer_email }}</p>
         </div>
     </div>
-    <a href="{{ url_for('catalog') }}" class="btn btn-primary mt-4">Retour au Catalogue</a>
+    
+    <div class="text-center mt-4">
+        <a href="{{ url_for('catalog') }}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Retour au catalogue
+        </a>
+    </div>
+</div>
+{% endblock %}
+''')
+
+PRIVACY_POLICY_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Politique de confidentialité</h1>
+    <p class="text-muted">Dernière mise à jour : 29 octobre 2025</p>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4>1. Responsable du traitement des renseignements personnels</h4>
+            <p><strong>[VOTRE ENTREPRISE]</strong><br>
+            [VOTRE ADRESSE COMPLÈTE]<br>
+            Québec, Canada<br>
+            Email : [VOTRE EMAIL]<br>
+            Téléphone : [VOTRE TÉLÉPHONE]</p>
+            
+            <h4 class="mt-4">2. Renseignements collectés (conformément à la Loi 25)</h4>
+            <p>Nous collectons les renseignements personnels suivants :</p>
+            <ul>
+                <li><strong>Informations d'identification :</strong> Nom, prénom</li>
+                <li><strong>Coordonnées :</strong> Adresse email, numéro de téléphone, adresse postale</li>
+                <li><strong>Informations de commande :</strong> Historique d'achats, préférences de produits</li>
+                <li><strong>Avis clients :</strong> Commentaires et notes sur les produits (avec possibilité d'anonymat)</li>
+            </ul>
+            
+            <h4 class="mt-4">3. Finalités de la collecte</h4>
+            <p>Vos renseignements personnels sont collectés pour les fins suivantes :</p>
+            <ul>
+                <li>Traitement et livraison de vos commandes</li>
+                <li>Communication concernant votre commande</li>
+                <li>Service à la clientèle</li>
+                <li>Amélioration de nos produits et services</li>
+                <li>Respect de nos obligations légales</li>
+            </ul>
+            
+            <h4 class="mt-4">4. Vos droits (Loi 25 - Québec)</h4>
+            <p>Conformément à la Loi 25 sur la protection des renseignements personnels au Québec, vous avez le droit de :</p>
+            <ul>
+                <li><strong>Accès :</strong> Demander l'accès à vos renseignements personnels</li>
+                <li><strong>Rectification :</strong> Demander la correction de renseignements inexacts</li>
+                <li><strong>Retrait du consentement :</strong> Retirer votre consentement en tout temps</li>
+                <li><strong>Désindexation :</strong> Demander la désindexation de certains renseignements</li>
+                <li><strong>Portabilité :</strong> Obtenir une copie de vos renseignements dans un format structuré</li>
+                <li><strong>Suppression :</strong> Demander la suppression de vos renseignements (sous certaines conditions)</li>
+            </ul>
+            
+            <h4 class="mt-4">5. Conservation des données</h4>
+            <p>Vos renseignements personnels sont conservés pendant la durée nécessaire aux fins pour lesquelles ils ont été collectés, soit :</p>
+            <ul>
+                <li>Durée de la relation commerciale</li>
+                <li>7 ans pour les informations comptables (conformément aux lois fiscales)</li>
+                <li>Les avis clients sont conservés indéfiniment sauf demande de suppression</li>
+            </ul>
+            
+            <h4 class="mt-4">6. Sécurité</h4>
+            <p>Nous prenons des mesures de sécurité appropriées pour protéger vos renseignements personnels contre l'accès non autorisé, la divulgation, la modification ou la destruction.</p>
+            
+            <h4 class="mt-4">7. Partage des renseignements</h4>
+            <p>Nous ne vendons, n'échangeons ni ne louons vos renseignements personnels à des tiers. Vos renseignements peuvent être partagés uniquement avec :</p>
+            <ul>
+                <li>Nos prestataires de services (livraison, paiement) sous engagement de confidentialité</li>
+                <li>Les autorités légales si requis par la loi</li>
+            </ul>
+            
+            <h4 class="mt-4">8. Incident de confidentialité</h4>
+            <p>En cas d'incident de confidentialité présentant un risque de préjudice sérieux, nous vous en informerons et aviserons la Commission d'accès à l'information du Québec conformément à la Loi 25.</p>
+            
+            <h4 class="mt-4">9. Contact et plainte</h4>
+            <p>Pour exercer vos droits ou pour toute question concernant vos renseignements personnels :</p>
+            <p><strong>Email :</strong> [VOTRE EMAIL CONFIDENTIALITÉ]<br>
+            <strong>Téléphone :</strong> [VOTRE TÉLÉPHONE]</p>
+            
+            <p class="mt-3">Vous pouvez également déposer une plainte auprès de la Commission d'accès à l'information du Québec :</p>
+            <p>Commission d'accès à l'information du Québec<br>
+            Québec : 418 528-7741<br>
+            Montréal : 514 873-4196<br>
+            Sans frais : 1 888 528-7741<br>
+            <a href="https://www.cai.gouv.qc.ca" target="_blank">www.cai.gouv.qc.ca</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+''')
+
+TERMS_OF_SALE_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Conditions générales de vente</h1>
+    <p class="text-muted">En vigueur depuis le 29 octobre 2025</p>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4>1. Identification du vendeur</h4>
+            <p><strong>[NOM DE VOTRE ENTREPRISE]</strong><br>
+            Numéro d'entreprise du Québec (NEQ) : [VOTRE NEQ]<br>
+            [ADRESSE COMPLÈTE]<br>
+            Téléphone : [VOTRE TÉLÉPHONE]<br>
+            Email : [VOTRE EMAIL]</p>
+            
+            <h4 class="mt-4">2. Produits</h4>
+            <p>OPALINE PARFUMS propose à la vente des parfums de luxe. Les produits sont décrits avec la plus grande exactitude possible. Les photographies ne sont pas contractuelles.</p>
+            
+            <h4 class="mt-4">3. Prix</h4>
+            <p>Les prix sont affichés en dollars canadiens (CAD), toutes taxes comprises (TPS et TVQ incluses pour le Québec).</p>
+            <p>Les prix peuvent être modifiés à tout moment, mais seront facturés sur la base des tarifs en vigueur au moment de la validation de la commande.</p>
+            
+            <h4 class="mt-4">4. Commande</h4>
+            <p>Toute commande implique l'acceptation pleine et entière des présentes conditions générales de vente. La validation de votre commande vaut acceptation de ces conditions.</p>
+            <p>Vous recevrez une confirmation de commande par email avec votre numéro de commande.</p>
+            
+            <h4 class="mt-4">5. Paiement</h4>
+            <p><strong>Modes de paiement acceptés :</strong></p>
+            <ul>
+                <li>[PRÉCISEZ VOS MODES DE PAIEMENT : Carte de crédit, Interac, etc.]</li>
+            </ul>
+            <p>Le paiement est exigible immédiatement lors de la commande.</p>
+            
+            <h4 class="mt-4">6. Livraison</h4>
+            <p><strong>Zone de livraison :</strong> [PRÉCISEZ : Québec, Canada, etc.]</p>
+            <p><strong>Délais de livraison :</strong> [PRÉCISEZ VOS DÉLAIS]</p>
+            <p><strong>Frais de livraison :</strong> [PRÉCISEZ VOS FRAIS]</p>
+            <p>Les délais de livraison sont donnés à titre indicatif. Tout retard de livraison ne peut donner lieu à l'annulation de la commande ou au versement de dommages et intérêts, sauf en cas de force majeure.</p>
+            
+            <h4 class="mt-4">7. Droit de rétractation (Loi sur la protection du consommateur - Québec)</h4>
+            <p>Conformément à la Loi sur la protection du consommateur du Québec, vous bénéficiez d'un délai de <strong>10 jours</strong> pour exercer votre droit de rétractation sans avoir à justifier de motifs ni à payer de pénalité.</p>
+            <p>Le délai court à compter de la réception du produit.</p>
+            <p><strong>Exceptions :</strong> Les produits descellés ou utilisés pour des raisons d'hygiène ne peuvent être retournés.</p>
+            
+            <h4 class="mt-4">8. Retours et remboursements</h4>
+            <p>Pour retourner un produit, contactez-nous à [VOTRE EMAIL] dans les 10 jours suivant la réception.</p>
+            <p>Les produits doivent être retournés dans leur emballage d'origine, non ouverts et non utilisés.</p>
+            <p>Le remboursement sera effectué dans un délai de 14 jours suivant la réception du produit retourné.</p>
+            
+            <h4 class="mt-4">9. Garanties</h4>
+            <p>Tous nos produits bénéficient de la garantie légale de conformité et de la garantie contre les vices cachés prévues par le Code civil du Québec.</p>
+            
+            <h4 class="mt-4">10. Responsabilité</h4>
+            <p>Notre responsabilité ne saurait être engagée pour tous les inconvénients ou dommages résultant de l'utilisation du réseau Internet, notamment une rupture de service, intrusion extérieure ou présence de virus informatiques.</p>
+            
+            <h4 class="mt-4">11. Propriété intellectuelle</h4>
+            <p>Tous les éléments du site OPALINE PARFUMS (textes, images, logos) sont protégés par le droit d'auteur. Toute reproduction est interdite sans autorisation préalable.</p>
+            
+            <h4 class="mt-4">12. Loi applicable et juridiction</h4>
+            <p>Les présentes conditions générales de vente sont soumises au droit québécois.</p>
+            <p>En cas de litige, les tribunaux du Québec seront seuls compétents.</p>
+            
+            <h4 class="mt-4">13. Contact</h4>
+            <p>Pour toute question relative à nos conditions de vente :</p>
+            <p><strong>Email :</strong> [VOTRE EMAIL]<br>
+            <strong>Téléphone :</strong> [VOTRE TÉLÉPHONE]</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+''')
+
+LEGAL_NOTICE_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Mentions légales</h1>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4>1. Éditeur du site</h4>
+            <p><strong>Raison sociale :</strong> [NOM DE VOTRE ENTREPRISE]<br>
+            <strong>Forme juridique :</strong> [Ex: Entreprise individuelle, SARL, etc.]<br>
+            <strong>Numéro d'entreprise du Québec (NEQ) :</strong> [VOTRE NEQ]<br>
+            <strong>Numéro de TPS :</strong> [VOTRE #TPS]<br>
+            <strong>Numéro de TVQ :</strong> [VOTRE #TVQ]</p>
+            
+            <p><strong>Siège social :</strong><br>
+            [ADRESSE COMPLÈTE]<br>
+            Québec, Canada</p>
+            
+            <p><strong>Contact :</strong><br>
+            Email : [VOTRE EMAIL]<br>
+            Téléphone : [VOTRE TÉLÉPHONE]</p>
+            
+            <h4 class="mt-4">2. Directeur de la publication</h4>
+            <p><strong>Nom :</strong> [NOM DU RESPONSABLE]<br>
+            <strong>Fonction :</strong> [PROPRIÉTAIRE / DIRIGEANT]</p>
+            
+            <h4 class="mt-4">3. Hébergement du site</h4>
+            <p><strong>Nom de l'hébergeur :</strong> [NOM DE VOTRE HÉBERGEUR - Ex: Render.com]<br>
+            <strong>Adresse :</strong> [ADRESSE DE L'HÉBERGEUR]<br>
+            <strong>Site web :</strong> [URL DE L'HÉBERGEUR]</p>
+            
+            <h4 class="mt-4">4. Responsable de la protection des renseignements personnels (Loi 25)</h4>
+            <p>Conformément à la Loi 25 sur la protection des renseignements personnels au Québec :</p>
+            <p><strong>Nom :</strong> [NOM DU RESPONSABLE]<br>
+            <strong>Email :</strong> [EMAIL CONFIDENTIALITÉ]<br>
+            <strong>Téléphone :</strong> [TÉLÉPHONE]</p>
+            
+            <h4 class="mt-4">5. Propriété intellectuelle</h4>
+            <p>L'ensemble du contenu de ce site (textes, images, logos, graphismes) est la propriété exclusive de [VOTRE ENTREPRISE], sauf mention contraire.</p>
+            <p>Toute reproduction, distribution, modification ou utilisation du contenu de ce site, en tout ou en partie, est strictement interdite sans l'autorisation écrite préalable de [VOTRE ENTREPRISE].</p>
+            
+            <h4 class="mt-4">6. Cookies</h4>
+            <p>Ce site utilise des cookies de session essentiels au fonctionnement du panier d'achat. Aucun cookie de suivi ou publicitaire n'est utilisé.</p>
+            
+            <h4 class="mt-4">7. Limitation de responsabilité</h4>
+            <p>[VOTRE ENTREPRISE] ne saurait être tenue responsable des dommages directs ou indirects résultant de l'accès ou de l'utilisation du site, y compris l'inaccessibilité, les pertes de données ou les virus.</p>
+            
+            <h4 class="mt-4">8. Loi applicable</h4>
+            <p>Les présentes mentions légales sont régies par les lois du Québec, Canada.</p>
+        </div>
+    </div>
+    
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> <strong>Important :</strong> Cette page contient des informations génériques. Veuillez remplacer tous les éléments entre crochets [XXX] par vos vraies informations d'entreprise.
+    </div>
 </div>
 {% endblock %}
 ''')
@@ -976,7 +1276,7 @@ ADMIN_ADD_PRODUCT_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblo
 <div class="container my-5">
     <h2 class="mb-4"><i class="fas fa-plus"></i> Ajouter un Produit</h2>
     
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
         <div class="row">
             <div class="col-md-6">
                 <div class="mb-3">
@@ -1035,9 +1335,9 @@ ADMIN_ADD_PRODUCT_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblo
             </div>
             <div class="col-md-6">
                 <div class="mb-3">
-                    <label class="form-label">URL Image *</label>
-                    <input type="url" class="form-control" name="image_url" 
-                           placeholder="https://example.com/image.jpg" required>
+                    <label class="form-label">Image du produit *</label>
+                    <input type="file" class="form-control" name="image" accept="image/*" required>
+                    <small class="text-muted">Formats acceptés: JPG, PNG, GIF, WEBP (max 16MB)</small>
                 </div>
             </div>
         </div>
