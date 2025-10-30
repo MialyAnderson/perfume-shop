@@ -1,42 +1,6 @@
-flask==3.0.0
-flask-sqlalchemy==3.1.1
-flask-login==0.6.3
-werkzeug==3.0.1
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Werkzeug==3.0.1
 gunicorn==21.2.0
 psycopg2-binary==2.9.9
-
-# Base de données
-*.db
-*.sqlite
-*.sqlite3
-
-# Images uploadées
-static/uploads/*
-!static/uploads/.gitkeep
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-build/
-dist/
-*.egg-info/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Environment variables
-.env
-.env.local

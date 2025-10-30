@@ -1,6 +1,35 @@
+# Base de données
 *.db
+*.sqlite
+*.sqlite3
+
+# Images uploadées
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Python
 __pycache__/
-*.pyc
-.env
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
 venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
