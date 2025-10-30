@@ -524,7 +524,7 @@ INDEX_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
                         
                         <p class="card-text text-truncate">{{ product.description }}</p>
                         <div class="d-flex justify-content-between align-items-center">
-                            <h4 class="text-primary mb-0">{{ "%.2f"|format(product.price) }}€</h4>
+                            <h4 class="text-primary mb-0">{{ "%.2f"|format(product.price) }} $</h4>
                         </div>
                     </div>
                 </a>
@@ -577,7 +577,7 @@ CATALOG_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', ''
                         {% endif %}
                         
                         <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="text-primary mb-0">{{ "%.2f"|format(product.price) }}€</h5>
+                            <h5 class="text-primary mb-0">{{ "%.2f"|format(product.price) }} $</h5>
                             <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-sm btn-primary" onclick="event.stopPropagation();">
                                 <i class="fas fa-cart-plus"></i>
                             </a>
@@ -616,7 +616,7 @@ PRODUCT_DETAIL_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
             </div>
             {% endif %}
             
-            <h3 class="text-primary mb-4">{{ "%.2f"|format(product.price) }}€</h3>
+            <h3 class="text-primary mb-4">{{ "%.2f"|format(product.price) }} $</h3>
             <p class="mb-4">{{ product.description }}</p>
             <p><strong>Taille:</strong> {{ product.size_ml }}ml</p>
             <p><strong>Stock:</strong> {{ product.stock }} disponible(s)</p>
@@ -725,9 +725,9 @@ CART_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
                             </div>
                         </div>
                     </td>
-                    <td>{{ "%.2f"|format(item.product.price) }}€</td>
+                    <td>{{ "%.2f"|format(item.product.price) }} $</td>
                     <td>{{ item.quantity }}</td>
-                    <td><strong>{{ "%.2f"|format(item.subtotal) }}€</strong></td>
+                    <td><strong>{{ "%.2f"|format(item.subtotal) }} $</strong></td>
                     <td>
                         <a href="{{ url_for('remove_from_cart', product_id=item.product.id) }}" 
                            class="btn btn-sm btn-danger">
@@ -740,7 +740,7 @@ CART_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
             <tfoot>
                 <tr>
                     <th colspan="3" class="text-end">Total:</th>
-                    <th colspan="2"><h4 class="text-primary mb-0">{{ "%.2f"|format(total) }}€</h4></th>
+                    <th colspan="2"><h4 class="text-primary mb-0">{{ "%.2f"|format(total) }} $</h4></th>
                 </tr>
             </tfoot>
         </table>
@@ -827,13 +827,13 @@ CHECKOUT_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '
                     {% for item in items %}
                     <div class="d-flex justify-content-between mb-2">
                         <span>{{ item.product.name }} x{{ item.quantity }}</span>
-                        <span>{{ "%.2f"|format(item.subtotal) }}€</span>
+                        <span>{{ "%.2f"|format(item.subtotal) }} $</span>
                     </div>
                     {% endfor %}
                     <hr>
                     <div class="d-flex justify-content-between">
                         <strong>Total:</strong>
-                        <h4 class="text-primary mb-0">{{ "%.2f"|format(total) }}€</h4>
+                        <h4 class="text-primary mb-0">{{ "%.2f"|format(total) }} $</h4>
                     </div>
                 </div>
             </div>
@@ -856,7 +856,7 @@ ORDER_SUCCESS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %
         <div class="card-header"><h5>Détails de la commande</h5></div>
         <div class="card-body">
             <p><strong>Numéro de commande:</strong> {{ order.order_number }}</p>
-            <p><strong>Montant total:</strong> {{ "%.2f"|format(order.total_amount) }}€</p>
+            <p><strong>Montant total:</strong> {{ "%.2f"|format(order.total_amount) } $</p>
             <p><strong>Statut:</strong> <span class="badge bg-success">{{ order.status }}</span></p>
             <hr>
             <h6>Informations de livraison:</h6>
@@ -1136,7 +1136,7 @@ ADMIN_DASHBOARD_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h3 style="color: #000;">{{ "%.2f"|format(total_revenue) }}€</h3>
+                    <h3 style="color: #000;">{{ "%.2f"|format(total_revenue) }} $</h3>
                     <p class="text-muted">Chiffre d'Affaires</p>
                 </div>
             </div>
@@ -1178,7 +1178,7 @@ ADMIN_DASHBOARD_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock
                             <tr>
                                 <td>{{ order.order_number }}</td>
                                 <td>{{ order.customer_first_name }} {{ order.customer_last_name }}</td>
-                                <td>{{ "%.2f"|format(order.total_amount) }}€</td>
+                                <td>{{ "%.2f"|format(order.total_amount) }}  $</td>
                                 <td><span class="badge">{{ order.status }}</span></td>
                             </tr>
                             {% endfor %}
@@ -1239,7 +1239,7 @@ ADMIN_PRODUCTS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
                     <td>{{ product.name }}</td>
                     <td>{{ product.brand }}</td>
                     <td><span class="badge">{{ product.category }}</span></td>
-                    <td>{{ "%.2f"|format(product.price) }}€</td>
+                    <td>{{ "%.2f"|format(product.price) }}  $</td>
                     <td>
                         {% if product.stock < 5 %}
                         <span class="badge bg-danger">{{ product.stock }}</span>
@@ -1300,7 +1300,7 @@ ADMIN_ADD_PRODUCT_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblo
         <div class="row">
             <div class="col-md-4">
                 <div class="mb-3">
-                    <label class="form-label">Prix (€) *</label>
+                    <label class="form-label">Prix ($) *</label>
                     <input type="number" step="0.01" class="form-control" name="price" required>
                 </div>
             </div>
@@ -1376,7 +1376,7 @@ ADMIN_ORDERS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}
                     <td><strong>{{ order.order_number }}</strong></td>
                     <td>{{ order.customer_first_name }} {{ order.customer_last_name }}</td>
                     <td>{{ order.customer_email }}</td>
-                    <td>{{ "%.2f"|format(order.total_amount) }}€</td>
+                    <td>{{ "%.2f"|format(order.total_amount) }} $</td>
                     <td>
                         <form method="POST" action="{{ url_for('admin_update_order_status', id=order.id) }}" style="display:inline;">
                             <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
