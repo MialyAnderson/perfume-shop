@@ -3,73 +3,416 @@
 {% block title %}{{ product.name }} - OPALINE PARFUMS{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="row">
-        <div class="col-md-6">
-            <img src="{{ product.image_url }}" class="img-fluid rounded" alt="{{ product.name }}">
+<style>
+    .product-detail-section {
+        padding: 80px 0;
+        background: #fafafa;
+    }
+
+    .product-image-container {
+        position: relative;
+        border-radius: 0;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        background: #fff;
+    }
+
+    .product-image-container img {
+        width: 100%;
+        height: auto;
+        display: block;
+        transition: transform 0.6s ease;
+    }
+
+    .product-image-container:hover img {
+        transform: scale(1.05);
+    }
+
+    .product-info {
+        background: #fff;
+        padding: 40px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    }
+
+    .product-info h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: 2px;
+        margin-bottom: 15px;
+        color: #000;
+    }
+
+    .product-brand {
+        font-size: 1.3rem;
+        color: var(--secondary-color);
+        font-weight: 600;
+        letter-spacing: 1px;
+        margin-bottom: 20px;
+        display: block;
+    }
+
+    .rating-display {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .stars {
+        color: var(--secondary-color);
+        font-size: 1.3rem;
+    }
+
+    .rating-count {
+        color: var(--text-light);
+        font-size: 1rem;
+    }
+
+    .product-description {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #666;
+        margin-bottom: 30px;
+        padding: 20px 0;
+        border-top: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+    }
+
+    .product-specs {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .spec-badge {
+        background: #f8f9fa;
+        padding: 12px 25px;
+        border-radius: 50px;
+        font-weight: 600;
+        border: 2px solid #e0e0e0;
+    }
+
+    .spec-badge i {
+        margin-right: 8px;
+        color: var(--secondary-color);
+    }
+
+    .price-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        padding: 30px;
+        margin-bottom: 30px;
+        border-left: 4px solid var(--secondary-color);
+    }
+
+    .product-price {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #000;
+        margin-bottom: 10px;
+    }
+
+    .stock-badge {
+        display: inline-block;
+        padding: 8px 20px;
+        border-radius: 50px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        font-size: 0.95rem;
+    }
+
+    .stock-badge.in-stock {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .stock-badge.out-of-stock {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .btn-add-cart {
+        width: 100%;
+        padding: 20px;
+        font-size: 1.2rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 15px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-add-cart i {
+        margin-right: 10px;
+        font-size: 1.3rem;
+    }
+
+    .security-badges {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+    }
+
+    .security-item {
+        text-align: center;
+    }
+
+    .security-item i {
+        font-size: 2rem;
+        color: var(--secondary-color);
+        margin-bottom: 10px;
+    }
+
+    .security-item p {
+        font-size: 0.9rem;
+        color: #666;
+        margin: 0;
+        font-weight: 600;
+    }
+
+    /* Reviews Section */
+    .reviews-section {
+        background: #fff;
+        padding: 60px;
+        margin-top: 60px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    }
+
+    .reviews-section h3 {
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        margin-bottom: 40px;
+        position: relative;
+        display: inline-block;
+    }
+
+    .reviews-section h3::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background: var(--secondary-color);
+    }
+
+    .review-form {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        padding: 40px;
+        margin-bottom: 50px;
+        border: 2px solid #e0e0e0;
+    }
+
+    .review-form h5 {
+        font-weight: 700;
+        margin-bottom: 25px;
+        font-size: 1.3rem;
+    }
+
+    .review-card {
+        background: #fff;
+        border: 2px solid #f0f0f0;
+        padding: 30px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .review-card:hover {
+        border-color: var(--secondary-color);
+        box-shadow: 0 5px 20px rgba(212, 175, 55, 0.2);
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 15px;
+    }
+
+    .reviewer-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #000;
+    }
+
+    .review-date {
+        color: var(--text-light);
+        font-size: 0.9rem;
+    }
+
+    .review-stars {
+        color: var(--secondary-color);
+        font-size: 1.1rem;
+    }
+
+    .review-comment {
+        color: #666;
+        line-height: 1.8;
+        font-size: 1rem;
+    }
+
+    .empty-reviews {
+        text-align: center;
+        padding: 60px 20px;
+        background: #f8f9fa;
+    }
+
+    .empty-reviews i {
+        font-size: 4rem;
+        color: #ddd;
+        margin-bottom: 20px;
+    }
+
+    /* Star Rating Form */
+    .star-rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        font-size: 2.5rem;
+        gap: 8px;
+    }
+
+    .star-rating input[type="radio"] {
+        display: none;
+    }
+
+    .star-rating label {
+        cursor: pointer;
+        color: #ddd;
+        transition: all 0.2s ease;
+    }
+
+    .star-rating label:hover,
+    .star-rating label:hover ~ label {
+        color: var(--secondary-color);
+        transform: scale(1.15);
+    }
+
+    .star-rating input[type="radio"]:checked ~ label {
+        color: var(--secondary-color);
+    }
+
+    @media (max-width: 768px) {
+        .product-info {
+            padding: 30px 20px;
+        }
+        .product-info h1 {
+            font-size: 2rem;
+        }
+        .reviews-section {
+            padding: 40px 20px;
+        }
+    }
+</style>
+
+<section class="product-detail-section">
+    <div class="container">
+        <div class="row g-5">
+            <!-- Image -->
+            <div class="col-lg-6">
+                <div class="product-image-container">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                </div>
+            </div>
+            
+            <!-- Info -->
+            <div class="col-lg-6">
+                <div class="product-info">
+                    <h1>{{ product.name }}</h1>
+                    <span class="product-brand">{{ product.brand }}</span>
+                    
+                    {% if product.reviews %}
+                    <div class="rating-display">
+                        <div class="stars">
+                            {% set avg_rating = (product.reviews|sum(attribute='rating')) / (product.reviews|length) %}
+                            {% for i in range(5) %}
+                                {% if i < avg_rating|round %}
+                                    <i class="fas fa-star"></i>
+                                {% else %}
+                                    <i class="far fa-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="rating-count">({{ product.reviews|length }} avis)</span>
+                    </div>
+                    {% endif %}
+                    
+                    <p class="product-description">{{ product.description }}</p>
+                    
+                    <div class="product-specs">
+                        <div class="spec-badge">
+                            <i class="fas fa-flask"></i>
+                            {{ product.size_ml }}ml
+                        </div>
+                        <div class="spec-badge">
+                            <i class="fas fa-tag"></i>
+                            {{ product.category }}
+                        </div>
+                    </div>
+                    
+                    <div class="price-section">
+                        <h2 class="product-price">${{ "%.2f"|format(product.price) }}</h2>
+                        {% if product.stock > 0 %}
+                            <span class="stock-badge in-stock">
+                                <i class="fas fa-check-circle me-1"></i>
+                                En stock ({{ product.stock }} disponibles)
+                            </span>
+                        {% else %}
+                            <span class="stock-badge out-of-stock">
+                                <i class="fas fa-times-circle me-1"></i>
+                                Rupture de stock
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if product.stock > 0 %}
+                    <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-primary btn-add-cart">
+                        <i class="fas fa-shopping-cart"></i>
+                        Ajouter au Panier
+                    </a>
+                    {% else %}
+                    <button class="btn btn-secondary btn-add-cart" disabled>
+                        <i class="fas fa-ban"></i>
+                        Produit Indisponible
+                    </button>
+                    {% endif %}
+                    
+                    <div class="security-badges">
+                        <div class="security-item">
+                            <i class="fas fa-shield-alt"></i>
+                            <p>Paiement<br>Sécurisé</p>
+                        </div>
+                        <div class="security-item">
+                            <i class="fas fa-truck"></i>
+                            <p>Livraison<br>Gratuite</p>
+                        </div>
+                        <div class="security-item">
+                            <i class="fas fa-undo"></i>
+                            <p>Retour<br>14 Jours</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
-        <div class="col-md-6">
-            <h1 class="mb-3">{{ product.name }}</h1>
-            <h5 class="text-muted mb-4">{{ product.brand }}</h5>
+        <!-- Reviews -->
+        <div class="reviews-section">
+            <h3><i class="fas fa-comments me-3"></i>Avis Clients</h3>
             
-            {% if product.reviews %}
-            <div class="mb-3">
-                {% set avg_rating = (product.reviews|sum(attribute='rating')) / (product.reviews|length) %}
-                <span class="text-warning">
-                    {% for i in range(5) %}
-                        {% if i < avg_rating|round %}
-                            <i class="fas fa-star"></i>
-                        {% else %}
-                            <i class="far fa-star"></i>
-                        {% endif %}
-                    {% endfor %}
-                </span>
-                <span class="text-muted ms-2">({{ product.reviews|length }} avis)</span>
-            </div>
-            {% endif %}
-            
-            <p class="lead">{{ product.description }}</p>
-            
-            <div class="my-4">
-                <span class="badge bg-secondary me-2"><i class="fas fa-flask"></i> {{ product.size_ml }}ml</span>
-                <span class="badge bg-dark"><i class="fas fa-tag"></i> {{ product.category }}</span>
-            </div>
-            
-            <div class="d-flex align-items-center mb-4">
-                <h2 class="mb-0 me-4">${{ "%.2f"|format(product.price) }}</h2>
-                {% if product.stock > 0 %}
-                    <span class="badge bg-success">En stock ({{ product.stock }})</span>
-                {% else %}
-                    <span class="badge bg-danger">Rupture de stock</span>
-                {% endif %}
-            </div>
-            
-            {% if product.stock > 0 %}
-            <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-primary btn-lg w-100">
-                <i class="fas fa-cart-plus"></i> Ajouter au panier
-            </a>
-            {% else %}
-            <button class="btn btn-secondary btn-lg w-100" disabled>Indisponible</button>
-            {% endif %}
-        </div>
-    </div>
-    
-    <div class="row mt-5">
-        <div class="col-12">
-            <h3 class="mb-4">Avis Clients</h3>
-            
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Donnez votre avis</h5>
-                    <form method="POST" action="{{ url_for('add_review', id=product.id) }}">
-                        <div class="mb-3">
-                            <label class="form-label">Votre nom (optionnel)</label>
+            <!-- Form -->
+            <div class="review-form">
+                <h5>Donnez votre avis sur ce produit</h5>
+                <form method="POST" action="{{ url_for('add_review', id=product.id) }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Votre nom (optionnel)</label>
                             <input type="text" class="form-control" name="author_name" placeholder="Anonyme">
                         </div>
                         
-                        <div class="mb-3">
-                            <label class="form-label">Note *</label>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Note *</label>
                             <div class="star-rating">
                                 <input type="radio" name="rating" value="5" id="star5" required>
                                 <label for="star5"><i class="fas fa-star"></i></label>
@@ -87,28 +430,29 @@
                                 <label for="star1"><i class="fas fa-star"></i></label>
                             </div>
                         </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Votre commentaire *</label>
-                            <textarea class="form-control" name="comment" rows="4" required></textarea>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-paper-plane"></i> Publier l'avis
-                        </button>
-                    </form>
-                </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Votre commentaire *</label>
+                        <textarea class="form-control" name="comment" rows="4" required placeholder="Partagez votre expérience avec ce parfum..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-2"></i>Publier mon Avis
+                    </button>
+                </form>
             </div>
             
-            {% for review in product.reviews|sort(attribute='created_at', reverse=true) %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
+            <!-- Reviews List -->
+            {% if product.reviews %}
+                {% for review in product.reviews|sort(attribute='created_at', reverse=true) %}
+                <div class="review-card">
+                    <div class="review-header">
                         <div>
-                            <h6 class="mb-1">{{ review.author_name }}</h6>
-                            <small class="text-muted">{{ review.created_at.strftime('%d/%m/%Y') }}</small>
+                            <h6 class="reviewer-name">{{ review.author_name }}</h6>
+                            <small class="review-date">{{ review.created_at.strftime('%d/%m/%Y') }}</small>
                         </div>
-                        <div class="text-warning">
+                        <div class="review-stars">
                             {% for i in range(review.rating) %}
                                 <i class="fas fa-star"></i>
                             {% endfor %}
@@ -117,17 +461,17 @@
                             {% endfor %}
                         </div>
                     </div>
-                    <p class="mb-0">{{ review.comment }}</p>
+                    <p class="review-comment">{{ review.comment }}</p>
                 </div>
-            </div>
-            {% endfor %}
-            
-            {% if product.reviews|length == 0 %}
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> Soyez le premier à donner votre avis !
-            </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-reviews">
+                    <i class="fas fa-comments"></i>
+                    <h4>Aucun avis pour le moment</h4>
+                    <p>Soyez le premier à partager votre expérience !</p>
+                </div>
             {% endif %}
         </div>
     </div>
-</div>
+</section>
 {% endblock %}

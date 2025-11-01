@@ -1,89 +1,379 @@
 {% extends "base.html" %}
 
-{% block title %}Commande confirmée - OPALINE PARFUMS{% endblock %}
+{% block title %}Commande Confirmée - OPALINE PARFUMS{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="text-center mb-5">
-                <div class="mb-4">
-                    <i class="fas fa-check-circle fa-5x text-success"></i>
-                </div>
-                <h1 class="mb-3">Commande confirmée !</h1>
-                <p class="lead text-muted">Merci pour votre achat.</p>
+<style>
+    .success-section {
+        padding: 80px 0;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        min-height: 80vh;
+    }
+
+    .success-hero {
+        text-align: center;
+        margin-bottom: 60px;
+        animation: fadeInUp 0.8s ease;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .success-icon {
+        width: 120px;
+        height: 120px;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 30px;
+        box-shadow: 0 15px 50px rgba(40, 167, 69, 0.3);
+        animation: scaleIn 0.6s ease;
+    }
+
+    @keyframes scaleIn {
+        from {
+            transform: scale(0);
+        }
+        to {
+            transform: scale(1);
+        }
+    }
+
+    .success-icon i {
+        font-size: 4rem;
+        color: #fff;
+    }
+
+    .success-hero h1 {
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: 2px;
+        color: #000;
+        margin-bottom: 15px;
+    }
+
+    .success-hero p {
+        font-size: 1.3rem;
+        color: var(--text-light);
+        font-weight: 300;
+    }
+
+    .order-card {
+        background: #fff;
+        border: none;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        margin-bottom: 30px;
+    }
+
+    .order-card .card-header {
+        background: linear-gradient(135deg, #000 0%, #333 100%);
+        color: #fff;
+        border: none;
+        padding: 25px 30px;
+    }
+
+    .order-card .card-header h5 {
+        margin: 0;
+        font-weight: 700;
+        letter-spacing: 1px;
+        font-size: 1.3rem;
+    }
+
+    .order-card .card-header i {
+        margin-right: 12px;
+        color: var(--secondary-color);
+        font-size: 1.4rem;
+    }
+
+    .order-card .card-body {
+        padding: 40px 30px;
+    }
+
+    .order-number-box {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        padding: 25px;
+        border-left: 4px solid var(--secondary-color);
+        margin-bottom: 30px;
+    }
+
+    .order-number-label {
+        font-size: 1rem;
+        color: #666;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+
+    .order-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--secondary-color);
+        letter-spacing: 2px;
+    }
+
+    .order-date {
+        color: var(--text-light);
+        font-size: 1rem;
+    }
+
+    .order-item {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 20px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .order-item:last-child {
+        border-bottom: none;
+    }
+
+    .order-item-img {
+        width: 90px;
+        height: 90px;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    .order-item-details {
+        flex-grow: 1;
+    }
+
+    .order-item-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #000;
+        margin-bottom: 5px;
+    }
+
+    .order-item-meta {
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .order-item-price {
+        text-align: right;
+    }
+
+    .order-item-price p {
+        margin: 0;
+        color: #666;
+    }
+
+    .order-item-price strong {
+        font-size: 1.3rem;
+        color: #000;
+    }
+
+    .order-total-box {
+        background: linear-gradient(135deg, #000 0%, #333 100%);
+        padding: 25px;
+        margin-top: 25px;
+        color: #fff;
+    }
+
+    .order-total-box .d-flex {
+        align-items: center;
+    }
+
+    .order-total-label {
+        font-size: 1.4rem;
+        font-weight: 700;
+    }
+
+    .order-total-value {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--secondary-color);
+    }
+
+    .shipping-info-box {
+        background: #f8f9fa;
+        padding: 25px;
+        border-left: 4px solid var(--secondary-color);
+    }
+
+    .shipping-info-box h6 {
+        font-weight: 700;
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+    }
+
+    .shipping-info-box p {
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    .next-steps {
+        background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+        border: 2px solid #17a2b8;
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+
+    .next-steps h6 {
+        color: #0c5460;
+        font-weight: 700;
+        margin-bottom: 20px;
+        font-size: 1.2rem;
+    }
+
+    .next-steps ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    .next-steps li {
+        color: #0c5460;
+        margin-bottom: 10px;
+        font-weight: 500;
+    }
+
+    .next-steps strong {
+        color: #000;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn-action {
+        padding: 15px 40px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        font-size: 1.1rem;
+    }
+
+    @media (max-width: 768px) {
+        .success-hero h1 {
+            font-size: 2rem;
+        }
+        .order-number {
+            font-size: 1.8rem;
+        }
+        .order-item {
+            flex-direction: column;
+            text-align: center;
+        }
+        .order-item-price {
+            text-align: center;
+        }
+    }
+</style>
+
+<section class="success-section">
+    <div class="container">
+        <!-- Hero Success -->
+        <div class="success-hero">
+            <div class="success-icon">
+                <i class="fas fa-check"></i>
             </div>
-            
-            <div class="card mb-4">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0"><i class="fas fa-receipt"></i> Détails de votre commande</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-2">Numéro de commande</h6>
-                            <h4 class="text-primary">{{ order.order_number }}</h4>
-                        </div>
-                        <div class="col-md-6 text-md-end">
-                            <h6 class="text-muted mb-2">Date</h6>
-                            <p class="mb-0">{{ order.created_at.strftime('%d/%m/%Y à %H:%M') }}</p>
-                        </div>
+            <h1>Commande Confirmée !</h1>
+            <p>Merci pour votre confiance. Votre commande a été enregistrée avec succès.</p>
+        </div>
+        
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Détails Commande -->
+                <div class="order-card card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-receipt"></i>Détails de votre Commande</h5>
                     </div>
-                    
-                    <h6 class="mb-3">Articles commandés</h6>
-                    {% for item in order.items %}
-                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
-                        <div class="d-flex align-items-center">
-                            <img src="{{ item.product.image_url }}" class="rounded me-3" style="width: 80px; height: 80px; object-fit: cover;">
-                            <div>
-                                <h6 class="mb-1">{{ item.product.name }}</h6>
-                                <p class="text-muted small mb-0">{{ item.product.brand }} - {{ item.product.size_ml }}ml</p>
-                                <p class="text-muted small mb-0">Quantité: {{ item.quantity }}</p>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="order-number-box">
+                                    <p class="order-number-label">Numéro de Commande</p>
+                                    <h2 class="order-number">{{ order.order_number }}</h2>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="order-number-box" style="border-left-color: #000;">
+                                    <p class="order-number-label">Date de Commande</p>
+                                    <h4 class="order-date">{{ order.created_at.strftime('%d/%m/%Y à %H:%M') }}</h4>
+                                </div>
                             </div>
                         </div>
-                        <div class="text-end">
-                            <p class="mb-0">${{ "%.2f"|format(item.product.price) }} × {{ item.quantity }}</p>
-                            <p class="mb-0"><strong>${{ "%.2f"|format(item.subtotal) }}</strong></p>
+                        
+                        <h6 style="font-weight: 700; margin-top: 30px; margin-bottom: 20px; font-size: 1.2rem;">Articles Commandés</h6>
+                        {% for item in order.items %}
+                        <div class="order-item">
+                            <img src="{{ item.product.image_url }}" class="order-item-img" alt="{{ item.product.name }}">
+                            <div class="order-item-details">
+                                <h6 class="order-item-name">{{ item.product.name }}</h6>
+                                <p class="order-item-meta">{{ item.product.brand }} - {{ item.product.size_ml }}ml</p>
+                                <p class="order-item-meta">Quantité: {{ item.quantity }}</p>
+                            </div>
+                            <div class="order-item-price">
+                                <p>${{ "%.2f"|format(item.product.price) }} × {{ item.quantity }}</p>
+                                <strong>${{ "%.2f"|format(item.subtotal) }}</strong>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <div class="order-total-box">
+                            <div class="d-flex justify-content-between">
+                                <span class="order-total-label">TOTAL PAYÉ :</span>
+                                <span class="order-total-value">${{ "%.2f"|format(order.total_amount) }} CAD</span>
+                            </div>
                         </div>
                     </div>
-                    {% endfor %}
-                    
-                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
-                        <h5 class="mb-0">Total payé</h5>
-                        <h4 class="mb-0 text-primary">${{ "%.2f"|format(order.total_amount) }} CAD</h4>
+                </div>
+                
+                <!-- Livraison -->
+                <div class="order-card card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-shipping-fast"></i>Informations de Livraison</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="shipping-info-box">
+                            <h6>Destinataire</h6>
+                            <p><strong>{{ order.customer_first_name }} {{ order.customer_last_name }}</strong></p>
+                            <p><i class="fas fa-envelope me-2"></i>{{ order.customer_email }}</p>
+                            <p><i class="fas fa-phone me-2"></i>{{ order.customer_phone }}</p>
+                        </div>
+                        <div class="shipping-info-box mt-3">
+                            <h6>Adresse de Livraison</h6>
+                            <p>{{ order.shipping_address }}</p>
+                            <p>{{ order.shipping_city }}, {{ order.shipping_postal_code }}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="card mb-4">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0"><i class="fas fa-shipping-fast"></i> Livraison</h5>
+                
+                <!-- Prochaines Étapes -->
+                <div class="next-steps">
+                    <h6><i class="fas fa-info-circle me-2"></i>Que se passe-t-il maintenant ?</h6>
+                    <ul>
+                        <li>Un email de confirmation a été envoyé à <strong>{{ order.customer_email }}</strong></li>
+                        <li>Votre commande sera <strong>traitée sous 24-48 heures</strong></li>
+                        <li>Vous recevrez un <strong>email de suivi</strong> dès l'expédition</li>
+                        <li>Livraison estimée : <strong>3-5 jours ouvrables</strong></li>
+                    </ul>
                 </div>
-                <div class="card-body">
-                    <p><strong>{{ order.customer_first_name }} {{ order.customer_last_name }}</strong></p>
-                    <p class="mb-0">{{ order.shipping_address }}</p>
-                    <p class="mb-0">{{ order.shipping_city }}, {{ order.shipping_postal_code }}</p>
+                
+                <!-- Boutons Actions -->
+                <div class="action-buttons">
+                    <a href="{{ url_for('index') }}" class="btn btn-primary btn-action">
+                        <i class="fas fa-home me-2"></i>Retour à l'Accueil
+                    </a>
+                    <a href="{{ url_for('catalog') }}" class="btn btn-outline-primary btn-action">
+                        <i class="fas fa-shopping-bag me-2"></i>Continuer mes Achats
+                    </a>
                 </div>
-            </div>
-            
-            <div class="alert alert-info">
-                <h6><i class="fas fa-info-circle"></i> Prochaines étapes</h6>
-                <ul class="mb-0">
-                    <li>Email de confirmation envoyé à {{ order.customer_email }}</li>
-                    <li>Traitement sous 24-48h</li>
-                    <li>Livraison: 3-5 jours ouvrables</li>
-                </ul>
-            </div>
-            
-            <div class="text-center">
-                <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg me-2">
-                    <i class="fas fa-home"></i> Accueil
-                </a>
-                <a href="{{ url_for('catalog') }}" class="btn btn-outline-primary btn-lg">
-                    <i class="fas fa-shopping-bag"></i> Continuer
-                </a>
             </div>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}

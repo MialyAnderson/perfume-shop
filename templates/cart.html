@@ -3,89 +3,365 @@
 {% block title %}Panier - OPALINE PARFUMS{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <h2 class="mb-4"><i class="fas fa-shopping-cart"></i> Mon Panier</h2>
-    
-    {% if items %}
-    <div class="row">
-        <div class="col-lg-8">
-            {% for item in items %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-3">
-                            <img src="{{ item.product.image_url }}" class="img-fluid rounded" alt="{{ item.product.name }}">
-                        </div>
-                        <div class="col-md-5">
-                            <h5 class="mb-1">{{ item.product.name }}</h5>
-                            <p class="text-muted mb-1">{{ item.product.brand }}</p>
-                            <span class="badge bg-secondary">{{ item.product.size_ml }}ml</span>
-                        </div>
-                        <div class="col-md-2 text-center">
-                            <p class="mb-1 text-muted">Prix unitaire</p>
-                            <h5>${{ "%.2f"|format(item.product.price) }}</h5>
-                        </div>
-                        <div class="col-md-2 text-center">
-                            <p class="mb-1 text-muted">Quantité</p>
-                            <h5>{{ item.quantity }}</h5>
-                            <p class="mb-0"><small>Total: ${{ "%.2f"|format(item.subtotal) }}</small></p>
-                            <a href="{{ url_for('remove_from_cart', product_id=item.product.id) }}" class="btn btn-sm btn-outline-danger mt-2">
-                                <i class="fas fa-trash"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
+<style>
+    .cart-section {
+        padding: 80px 0;
+        background: #fafafa;
+        min-height: 70vh;
+    }
+
+    .page-title {
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: 3px;
+        margin-bottom: 50px;
+        text-align: center;
+        color: #000;
+    }
+
+    .page-title i {
+        margin-right: 15px;
+        color: var(--secondary-color);
+    }
+
+    .cart-item-card {
+        background: #fff;
+        border: none;
+        border-radius: 0;
+        margin-bottom: 20px;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+    }
+
+    .cart-item-card:hover {
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+        transform: translateY(-3px);
+    }
+
+    .cart-item-card .card-body {
+        padding: 25px;
+    }
+
+    .cart-item-image {
+        width: 120px;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 0;
+    }
+
+    .item-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #000;
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+    }
+
+    .item-brand {
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .item-spec {
+        display: inline-block;
+        padding: 5px 15px;
+        background: #f8f9fa;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #666;
+    }
+
+    .price-label {
+        font-size: 0.9rem;
+        color: var(--text-light);
+        margin-bottom: 5px;
+        font-weight: 600;
+    }
+
+    .price-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #000;
+        margin: 0;
+    }
+
+    .quantity-display {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #000;
+    }
+
+    .btn-remove {
+        padding: 10px 20px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    /* Summary Card */
+    .summary-card {
+        background: #fff;
+        border: none;
+        border-radius: 0;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 100px;
+    }
+
+    .summary-card .card-header {
+        background: #000;
+        color: #fff;
+        border: none;
+        padding: 20px 25px;
+    }
+
+    .summary-card .card-header h5 {
+        margin: 0;
+        font-weight: 700;
+        letter-spacing: 1px;
+        font-size: 1.3rem;
+    }
+
+    .summary-card .card-header i {
+        margin-right: 10px;
+        color: var(--secondary-color);
+    }
+
+    .summary-card .card-body {
+        padding: 30px 25px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .summary-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .summary-label {
+        font-size: 1.1rem;
+        color: #666;
+    }
+
+    .summary-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #000;
+    }
+
+    .free-shipping {
+        color: #28a745;
+        font-weight: 700;
+    }
+
+    .summary-total {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        padding: 20px;
+        margin-top: 20px;
+        border-left: 4px solid var(--secondary-color);
+    }
+
+    .summary-total .summary-label {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #000;
+    }
+
+    .summary-total .summary-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--secondary-color);
+    }
+
+    .btn-checkout {
+        width: 100%;
+        padding: 18px;
+        font-size: 1.2rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 15px;
+    }
+
+    .btn-continue {
+        width: 100%;
+        padding: 15px;
+        font-weight: 600;
+    }
+
+    .security-info {
+        background: #f8f9fa;
+        padding: 20px;
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .security-info i {
+        font-size: 2rem;
+        color: #28a745;
+        margin-bottom: 10px;
+    }
+
+    .security-info h6 {
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .security-info p {
+        font-size: 0.9rem;
+        color: #666;
+        margin: 0;
+    }
+
+    /* Empty Cart */
+    .empty-cart {
+        text-align: center;
+        padding: 100px 20px;
+    }
+
+    .empty-cart i {
+        font-size: 8rem;
+        color: #e0e0e0;
+        margin-bottom: 30px;
+    }
+
+    .empty-cart h3 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    .empty-cart p {
+        font-size: 1.1rem;
+        color: #666;
+        margin-bottom: 30px;
+    }
+
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 2rem;
+        }
+        .cart-item-image {
+            width: 80px;
+            height: 80px;
+        }
+        .item-name {
+            font-size: 1.1rem;
+        }
+    }
+</style>
+
+<section class="cart-section">
+    <div class="container">
+        <h2 class="page-title">
+            <i class="fas fa-shopping-cart"></i>
+            Mon Panier
+        </h2>
         
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0"><i class="fas fa-receipt"></i> Résumé</h5>
+        {% if items %}
+        <div class="row">
+            <!-- Items -->
+            <div class="col-lg-8 mb-4">
+                {% for item in items %}
+                <div class="cart-item-card">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 col-3 text-center mb-3 mb-md-0">
+                                <img src="{{ item.product.image_url }}" class="cart-item-image" alt="{{ item.product.name }}">
+                            </div>
+                            
+                            <div class="col-md-4 col-9 mb-3 mb-md-0">
+                                <h5 class="item-name">{{ item.product.name }}</h5>
+                                <p class="item-brand">{{ item.product.brand }}</p>
+                                <span class="item-spec">{{ item.product.size_ml }}ml</span>
+                            </div>
+                            
+                            <div class="col-md-2 col-4 text-center mb-3 mb-md-0">
+                                <p class="price-label">Prix unitaire</p>
+                                <h5 class="price-value">${{ "%.2f"|format(item.product.price) }}</h5>
+                            </div>
+                            
+                            <div class="col-md-2 col-4 text-center mb-3 mb-md-0">
+                                <p class="price-label">Quantité</p>
+                                <div class="quantity-display">{{ item.quantity }}</div>
+                            </div>
+                            
+                            <div class="col-md-2 col-4 text-center">
+                                <p class="price-label">Total</p>
+                                <h5 class="price-value">${{ "%.2f"|format(item.subtotal) }}</h5>
+                                <a href="{{ url_for('remove_from_cart', product_id=item.product.id) }}" class="btn btn-outline-danger btn-sm btn-remove mt-2">
+                                    <i class="fas fa-trash me-1"></i>Retirer
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Sous-total</span>
-                        <span>${{ "%.2f"|format(total) }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Livraison</span>
-                        <span class="text-success">GRATUITE</span>
-                    </div>
-                    <hr>
-                    <div class="d-flex justify-content-between mb-3">
-                        <strong>Total</strong>
-                        <strong class="h4 text-primary">${{ "%.2f"|format(total) }} CAD</strong>
-                    </div>
-                    
-                    <a href="{{ url_for('checkout') }}" class="btn btn-primary w-100 btn-lg mb-2">
-                        <i class="fas fa-lock"></i> Passer la commande
-                    </a>
-                    <a href="{{ url_for('catalog') }}" class="btn btn-outline-primary w-100">
-                        <i class="fas fa-arrow-left"></i> Continuer mes achats
-                    </a>
-                </div>
+                {% endfor %}
             </div>
             
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h6><i class="fas fa-shield-alt text-success"></i> Paiement sécurisé</h6>
-                    <p class="small text-muted mb-0">Vos données sont protégées via PayPal</p>
+            <!-- Summary -->
+            <div class="col-lg-4">
+                <div class="summary-card card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-receipt"></i>Résumé de la Commande</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="summary-row">
+                            <span class="summary-label">Sous-total</span>
+                            <span class="summary-value">${{ "%.2f"|format(total) }}</span>
+                        </div>
+                        
+                        <div class="summary-row">
+                            <span class="summary-label">Livraison</span>
+                            <span class="summary-value free-shipping">
+                                <i class="fas fa-check-circle me-1"></i>GRATUITE
+                            </span>
+                        </div>
+                        
+                        <div class="summary-total">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="summary-label">Total</span>
+                                <span class="summary-value">${{ "%.2f"|format(total) }} CAD</span>
+                            </div>
+                        </div>
+                        
+                        <a href="{{ url_for('checkout') }}" class="btn btn-primary btn-checkout">
+                            <i class="fas fa-lock me-2"></i>Passer la Commande
+                        </a>
+                        
+                        <a href="{{ url_for('catalog') }}" class="btn btn-outline-primary btn-continue">
+                            <i class="fas fa-arrow-left me-2"></i>Continuer mes Achats
+                        </a>
+                        
+                        <div class="security-info">
+                            <i class="fas fa-shield-alt"></i>
+                            <h6>Paiement 100% Sécurisé</h6>
+                            <p>Vos données sont protégées via PayPal</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+        
+        {% else %}
+        <!-- Empty State -->
+        <div class="empty-cart">
+            <i class="fas fa-shopping-cart"></i>
+            <h3>Votre panier est vide</h3>
+            <p>Découvrez notre collection exclusive de parfums de luxe</p>
+            <a href="{{ url_for('catalog') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-gem me-2"></i>Explorer le Catalogue
+            </a>
+        </div>
+        {% endif %}
     </div>
-    
-    {% else %}
-    <div class="text-center py-5">
-        <i class="fas fa-shopping-cart fa-5x text-muted mb-4"></i>
-        <h3>Votre panier est vide</h3>
-        <p class="text-muted mb-4">Découvrez notre collection</p>
-        <a href="{{ url_for('catalog') }}" class="btn btn-primary btn-lg">
-            <i class="fas fa-search"></i> Explorer le catalogue
-        </a>
-    </div>
-    {% endif %}
-</div>
+</section>
 {% endblock %}

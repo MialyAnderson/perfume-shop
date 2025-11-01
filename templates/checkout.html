@@ -3,122 +3,375 @@
 {% block title %}Paiement - OPALINE PARFUMS{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <h2 class="mb-4"><i class="fas fa-credit-card"></i> Paiement</h2>
-    
-    <div class="row">
-        <div class="col-lg-7">
-            {% if not checkout_info %}
-            <div class="card mb-4">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0"><i class="fas fa-shipping-fast"></i> Informations de livraison</h5>
-                </div>
-                <div class="card-body">
-                    <form method="POST">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Prénom *</label>
-                                <input type="text" class="form-control" name="first_name" required>
+<style>
+    .checkout-section {
+        padding: 80px 0;
+        background: #fafafa;
+        min-height: 80vh;
+    }
+
+    .page-title {
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: 3px;
+        margin-bottom: 50px;
+        text-align: center;
+        color: #000;
+    }
+
+    .page-title i {
+        margin-right: 15px;
+        color: var(--secondary-color);
+    }
+
+    .form-card {
+        background: #fff;
+        border: none;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        margin-bottom: 30px;
+    }
+
+    .form-card .card-header {
+        background: linear-gradient(135deg, #000 0%, #333 100%);
+        color: #fff;
+        border: none;
+        padding: 25px 30px;
+    }
+
+    .form-card .card-header h5 {
+        margin: 0;
+        font-weight: 700;
+        letter-spacing: 1px;
+        font-size: 1.3rem;
+    }
+
+    .form-card .card-header i {
+        margin-right: 12px;
+        color: var(--secondary-color);
+        font-size: 1.4rem;
+    }
+
+    .form-card .card-body {
+        padding: 40px 30px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        letter-spacing: 0.3px;
+    }
+
+    .form-control {
+        border: 2px solid #e0e0e0;
+        padding: 12px 18px;
+        font-size: 1rem;
+        border-radius: 0;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25);
+    }
+
+    .info-saved-card {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border: 2px solid #28a745;
+        padding: 30px;
+    }
+
+    .info-saved-card h5 {
+        color: #155724;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+
+    .info-saved-card i {
+        color: #28a745;
+        margin-right: 8px;
+    }
+
+    .info-item {
+        margin-bottom: 8px;
+        color: #155724;
+        font-weight: 500;
+    }
+
+    .paypal-card {
+        background: #fff;
+        border: none;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    }
+
+    .paypal-card .card-header {
+        background: linear-gradient(135deg, #0070ba 0%, #003087 100%);
+        color: #fff;
+        border: none;
+        padding: 25px 30px;
+    }
+
+    .paypal-card .card-body {
+        padding: 40px 30px;
+    }
+
+    #paypal-button-container {
+        margin-top: 20px;
+    }
+
+    .summary-card {
+        background: #fff;
+        border: none;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 100px;
+    }
+
+    .summary-card .card-header {
+        background: #000;
+        color: #fff;
+        border: none;
+        padding: 20px 25px;
+    }
+
+    .summary-card .card-header h5 {
+        margin: 0;
+        font-weight: 700;
+        letter-spacing: 1px;
+        font-size: 1.3rem;
+    }
+
+    .summary-card .card-header i {
+        margin-right: 10px;
+        color: var(--secondary-color);
+    }
+
+    .summary-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 20px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .summary-item:last-child {
+        border-bottom: none;
+    }
+
+    .item-image {
+        width: 70px;
+        height: 70px;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    .item-details {
+        flex-grow: 1;
+    }
+
+    .item-name {
+        font-weight: 700;
+        font-size: 1rem;
+        color: #000;
+        margin-bottom: 3px;
+    }
+
+    .item-qty {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .item-price {
+        font-weight: 700;
+        color: #000;
+        font-size: 1.1rem;
+    }
+
+    .summary-totals {
+        padding: 20px 25px;
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .total-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .total-label {
+        font-size: 1.1rem;
+        color: #666;
+    }
+
+    .total-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #000;
+    }
+
+    .free-shipping {
+        color: #28a745;
+        font-weight: 700;
+    }
+
+    .grand-total {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        padding: 20px;
+        margin-top: 15px;
+        border-left: 4px solid var(--secondary-color);
+    }
+
+    .grand-total .total-label {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #000;
+    }
+
+    .grand-total .total-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--secondary-color);
+    }
+
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 2rem;
+        }
+        .form-card .card-body {
+            padding: 30px 20px;
+        }
+    }
+</style>
+
+<section class="checkout-section">
+    <div class="container">
+        <h2 class="page-title">
+            <i class="fas fa-credit-card"></i>
+            Paiement Sécurisé
+        </h2>
+        
+        <div class="row">
+            <div class="col-lg-7 mb-4">
+                {% if not checkout_info %}
+                <!-- Formulaire d'informations -->
+                <div class="form-card card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-shipping-fast"></i>Informations de Livraison</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Prénom *</label>
+                                    <input type="text" class="form-control" name="first_name" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Nom *</label>
+                                    <input type="text" class="form-control" name="last_name" required>
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Nom *</label>
-                                <input type="text" class="form-control" name="last_name" required>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Email *</label>
+                                <input type="email" class="form-control" name="email" required>
                             </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Email *</label>
-                            <input type="email" class="form-control" name="email" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Téléphone *</label>
-                            <input type="tel" class="form-control" name="phone" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Adresse *</label>
-                            <input type="text" class="form-control" name="address" required>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-8 mb-3">
-                                <label class="form-label">Ville *</label>
-                                <input type="text" class="form-control" name="city" required>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Téléphone *</label>
+                                <input type="tel" class="form-control" name="phone" required>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Code postal *</label>
-                                <input type="text" class="form-control" name="postal_code" required>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Adresse *</label>
+                                <input type="text" class="form-control" name="address" required>
                             </div>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-arrow-right"></i> Continuer vers le paiement
-                        </button>
-                    </form>
+                            
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label class="form-label">Ville *</label>
+                                    <input type="text" class="form-control" name="city" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Code postal *</label>
+                                    <input type="text" class="form-control" name="postal_code" required>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100" style="padding: 15px; font-size: 1.1rem;">
+                                <i class="fas fa-arrow-right me-2"></i>Continuer vers le Paiement
+                            </button>
+                        </form>
+                    </div>
                 </div>
-            </div>
-            {% else %}
-            <div class="card mb-4">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="fas fa-check-circle"></i> Informations enregistrées</h5>
+                {% else %}
+                <!-- Informations enregistrées -->
+                <div class="form-card card info-saved-card">
+                    <h5><i class="fas fa-check-circle"></i>Informations Enregistrées</h5>
+                    <p class="info-item"><i class="fas fa-user"></i><strong>{{ checkout_info.first_name }} {{ checkout_info.last_name }}</strong></p>
+                    <p class="info-item"><i class="fas fa-envelope"></i>{{ checkout_info.email }}</p>
+                    <p class="info-item"><i class="fas fa-phone"></i>{{ checkout_info.phone }}</p>
+                    <p class="info-item"><i class="fas fa-map-marker-alt"></i>{{ checkout_info.address }}, {{ checkout_info.city }}, {{ checkout_info.postal_code }}</p>
                 </div>
-                <div class="card-body">
-                    <p><strong>{{ checkout_info.first_name }} {{ checkout_info.last_name }}</strong></p>
-                    <p class="mb-1"><i class="fas fa-envelope"></i> {{ checkout_info.email }}</p>
-                    <p class="mb-1"><i class="fas fa-phone"></i> {{ checkout_info.phone }}</p>
-                    <p class="mb-0"><i class="fas fa-map-marker-alt"></i> {{ checkout_info.address }}, {{ checkout_info.city }}, {{ checkout_info.postal_code }}</p>
+                
+                <!-- PayPal -->
+                <div class="paypal-card card">
+                    <div class="card-header">
+                        <h5><i class="fab fa-paypal"></i>Paiement Sécurisé PayPal</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="paypal-button-container"></div>
+                    </div>
                 </div>
+                {% endif %}
             </div>
             
-            <div class="card">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0"><i class="fab fa-paypal"></i> Paiement sécurisé</h5>
-                </div>
-                <div class="card-body">
-                    <div id="paypal-button-container"></div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-        
-        <div class="col-lg-5">
-            <div class="card sticky-top" style="top: 20px;">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0"><i class="fas fa-shopping-bag"></i> Votre commande</h5>
-                </div>
-                <div class="card-body">
-                    {% for item in items %}
-                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
-                        <div class="d-flex align-items-center">
-                            <img src="{{ item.product.image_url }}" class="rounded me-3" style="width: 60px; height: 60px; object-fit: cover;" alt="{{ item.product.name }}">
-                            <div>
-                                <h6 class="mb-0">{{ item.product.name }}</h6>
-                                <small class="text-muted">Qté: {{ item.quantity }}</small>
+            <!-- Résumé Commande -->
+            <div class="col-lg-5">
+                <div class="summary-card card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-shopping-bag"></i>Votre Commande</h5>
+                    </div>
+                    <div class="card-body" style="padding: 25px;">
+                        {% for item in items %}
+                        <div class="summary-item">
+                            <img src="{{ item.product.image_url }}" class="item-image" alt="{{ item.product.name }}">
+                            <div class="item-details">
+                                <h6 class="item-name">{{ item.product.name }}</h6>
+                                <small class="item-qty">Quantité: {{ item.quantity }}</small>
+                            </div>
+                            <span class="item-price">${{ "%.2f"|format(item.subtotal) }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="summary-totals">
+                        <div class="total-row">
+                            <span class="total-label">Sous-total</span>
+                            <span class="total-value">${{ "%.2f"|format(total) }}</span>
+                        </div>
+                        <div class="total-row">
+                            <span class="total-label">Livraison</span>
+                            <span class="total-value free-shipping">
+                                <i class="fas fa-check-circle me-1"></i>GRATUITE
+                            </span>
+                        </div>
+                        <div class="grand-total">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="total-label">Total</span>
+                                <span class="total-value">${{ "%.2f"|format(total) }} CAD</span>
                             </div>
                         </div>
-                        <span>${{ "%.2f"|format(item.subtotal) }}</span>
-                    </div>
-                    {% endfor %}
-                    
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Sous-total</span>
-                        <span>${{ "%.2f"|format(total) }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Livraison</span>
-                        <span class="text-success">GRATUITE</span>
-                    </div>
-                    <hr>
-                    <div class="d-flex justify-content-between">
-                        <strong>Total</strong>
-                        <strong class="h4 text-primary">${{ "%.2f"|format(total) }} CAD</strong>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 
 {% if checkout_info %}
 <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=CAD"></script>
