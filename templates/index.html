@@ -3,38 +3,710 @@
 {% block title %}Accueil - OPALINE PARFUMS{% endblock %}
 
 {% block content %}
-<div class="hero">
-    <div class="container text-center">
-        <h1 class="display-3 fw-bold">Découvrez Votre Signature Olfactive</h1>
-        <p class="lead">Collection exclusive de parfums de luxe</p>
-        <a href="{{ url_for('catalog') }}" class="btn btn-primary btn-lg">
-            <i class="fas fa-search"></i> Explorer la Collection
-        </a>
-    </div>
-</div>
+<style>
+    /* Hero Section Ultra Moderne */
+    .hero-modern {
+        position: relative;
+        min-height: 90vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        overflow: hidden;
+    }
 
-<div class="container my-5">
-    <h2 class="text-center mb-5">Nos Parfums Sélectionnés</h2>
-    <div class="row g-4">
-        {% for product in products %}
-        <div class="col-md-4">
-            <div class="card product-card h-100">
-                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="height: 300px; object-fit: cover;">
-                <div class="card-body d-flex flex-column">
-                    <h5>{{ product.name }}</h5>
-                    <p class="text-muted">{{ product.brand }}</p>
-                    <p class="flex-grow-1">{{ product.description[:80] }}...</p>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="h5">${{ "%.2f"|format(product.price) }}</span>
-                        <a href="{{ url_for('product_detail', id=product.id) }}" class="btn btn-outline-primary">Voir</a>
+    .hero-modern::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(circle at 20% 50%, rgba(212, 175, 55, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.05) 0%, transparent 50%);
+        animation: gradientShift 15s ease infinite;
+    }
+
+    @keyframes gradientShift {
+        0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        50% { opacity: 0.8; transform: scale(1.1) rotate(2deg); }
+    }
+
+    /* Particules flottantes */
+    .floating-particles {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+
+    .particle {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background: var(--secondary-color);
+        border-radius: 50%;
+        opacity: 0;
+        box-shadow: 0 0 20px rgba(212, 175, 55, 0.8),
+                    0 0 40px rgba(212, 175, 55, 0.5);
+    }
+
+    .particle:nth-child(1) { left: 10%; animation: float 12s infinite; animation-delay: 0s; }
+    .particle:nth-child(2) { left: 30%; animation: float 15s infinite; animation-delay: 2s; }
+    .particle:nth-child(3) { left: 50%; animation: float 18s infinite; animation-delay: 4s; }
+    .particle:nth-child(4) { left: 70%; animation: float 14s infinite; animation-delay: 1s; }
+    .particle:nth-child(5) { left: 90%; animation: float 16s infinite; animation-delay: 3s; }
+    .particle:nth-child(6) { left: 20%; animation: float 13s infinite; animation-delay: 5s; }
+    .particle:nth-child(7) { left: 60%; animation: float 17s infinite; animation-delay: 2.5s; }
+    .particle:nth-child(8) { left: 85%; animation: float 19s infinite; animation-delay: 4.5s; }
+    .particle:nth-child(9) { left: 15%; animation: float 14s infinite; animation-delay: 1.5s; }
+    .particle:nth-child(10) { left: 45%; animation: float 16s infinite; animation-delay: 3.5s; }
+    .particle:nth-child(11) { left: 75%; animation: float 13s infinite; animation-delay: 0.5s; }
+    .particle:nth-child(12) { left: 95%; animation: float 15s infinite; animation-delay: 4.8s; }
+
+    @keyframes float {
+        0% {
+            transform: translateY(100vh) translateX(0) rotate(0deg) scale(1);
+            opacity: 0;
+        }
+        10% {
+            opacity: 0.9;
+        }
+        50% {
+            opacity: 1;
+            transform: translateY(50vh) translateX(30px) rotate(180deg) scale(1.5);
+        }
+        90% {
+            opacity: 0.9;
+        }
+        100% {
+            transform: translateY(-100vh) translateX(80px) rotate(360deg) scale(1);
+            opacity: 0;
+        }
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .hero-modern h1 {
+        font-size: 4.5rem;
+        font-weight: 800;
+        letter-spacing: 3px;
+        margin-bottom: 1.5rem;
+        color: #000;
+        animation: fadeInUp 1s ease;
+        line-height: 1.2;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .hero-modern .subtitle {
+        font-size: 1.6rem;
+        color: var(--text-light);
+        margin-bottom: 1.5rem;
+        animation: fadeInUp 1s ease 0.2s;
+        animation-fill-mode: both;
+        font-weight: 300;
+        letter-spacing: 2px;
+    }
+
+    /* Badge Prix */
+    .hero-cta-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        margin-top: 2rem;
+    }
+
+    .price-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--secondary-color);
+        color: #000;
+        padding: 12px 30px;
+        border-radius: 50px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        animation: fadeInUp 1s ease 0.3s, pulse-badge 2s ease-in-out infinite;
+        animation-fill-mode: both;
+        box-shadow: 0 5px 25px rgba(212, 175, 55, 0.4);
+        font-size: 1.1rem;
+    }
+
+    .price-badge i {
+        font-size: 1.3rem;
+        animation: swing 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-badge {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 5px 25px rgba(212, 175, 55, 0.4);
+        }
+        50% {
+            transform: scale(1.05);
+            box-shadow: 0 8px 35px rgba(212, 175, 55, 0.6);
+        }
+    }
+
+    @keyframes swing {
+        0%, 100% {
+            transform: rotate(-10deg);
+        }
+        50% {
+            transform: rotate(10deg);
+        }
+    }
+
+    .hero-modern .btn-explore {
+        animation: fadeInUp 1s ease 0.4s;
+        animation-fill-mode: both;
+        padding: 18px 45px;
+        font-size: 1.1rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(40px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Scroll Indicator */
+    .scroll-indicator {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 3;
+        animation: bounce 2s infinite;
+    }
+
+    .scroll-indicator i {
+        font-size: 2rem;
+        color: var(--secondary-color);
+        opacity: 0.7;
+    }
+
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateX(-50%) translateY(0);
+        }
+        40% {
+            transform: translateX(-50%) translateY(-15px);
+        }
+        60% {
+            transform: translateX(-50%) translateY(-7px);
+        }
+    }
+
+    /* Section Catalogue */
+    .catalog-section {
+        background: #fafafa;
+        padding: 100px 0;
+        position: relative;
+    }
+
+    .section-title {
+        font-size: 3rem;
+        font-weight: 700;
+        letter-spacing: 3px;
+        margin-bottom: 1rem;
+        position: relative;
+        display: inline-block;
+        color: #000;
+    }
+
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 4px;
+        background: var(--secondary-color);
+        box-shadow: 0 2px 10px rgba(212, 175, 55, 0.4);
+    }
+
+    .section-subtitle {
+        color: var(--text-light);
+        font-size: 1.2rem;
+        margin-top: 30px;
+        margin-bottom: 40px;
+        font-weight: 300;
+        letter-spacing: 1px;
+    }
+
+    /* Filtres Modernes */
+    .filter-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 60px;
+        flex-wrap: wrap;
+    }
+
+    .filter-btn {
+        background: #fff;
+        border: 2px solid #e0e0e0;
+        color: #333;
+        padding: 12px 30px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 50px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .filter-btn::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: var(--secondary-color);
+        transition: all 0.5s ease;
+        transform: translate(-50%, -50%);
+        z-index: 0;
+    }
+
+    .filter-btn:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    .filter-btn:hover {
+        border-color: var(--secondary-color);
+        color: #000;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(212, 175, 55, 0.3);
+    }
+
+    .filter-btn.active {
+        background: #000;
+        border-color: #000;
+        color: #fff;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .filter-btn.active:hover {
+        background: var(--secondary-color);
+        border-color: var(--secondary-color);
+        color: #000;
+    }
+
+    .filter-btn span {
+        position: relative;
+        z-index: 1;
+    }
+
+    .filter-btn i {
+        margin-right: 8px;
+    }
+
+    /* Product Cards Améliorées */
+    .product-card-modern {
+        border: none;
+        border-radius: 0;
+        overflow: hidden;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #fff;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+        height: 100%;
+    }
+
+    .product-card-modern:hover {
+        transform: translateY(-15px) scale(1.02);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    }
+
+    .product-img-wrapper {
+        position: relative;
+        overflow: hidden;
+        background: #f8f9fa;
+        height: 350px;
+    }
+
+    .product-img-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s ease;
+    }
+
+    .product-card-modern:hover .product-img-wrapper img {
+        transform: scale(1.12) rotate(2deg);
+    }
+
+    /* Overlay au survol */
+    .product-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(212, 175, 55, 0.3) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+    }
+
+    .product-card-modern:hover .product-overlay {
+        opacity: 1;
+    }
+
+    .overlay-btn {
+        background: #fff;
+        color: #000;
+        border: none;
+        padding: 15px 35px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        transform: translateY(20px);
+        transition: all 0.4s ease;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .product-card-modern:hover .overlay-btn {
+        transform: translateY(0);
+    }
+
+    .overlay-btn:hover {
+        background: var(--secondary-color);
+        transform: scale(1.05);
+    }
+
+    /* Card Body */
+    .product-card-modern .card-body {
+        padding: 25px;
+    }
+
+    .product-card-modern h5 {
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+        color: #000;
+    }
+
+    .product-card-modern .brand-name {
+        color: var(--text-light);
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 15px;
+        letter-spacing: 0.5px;
+    }
+
+    .product-card-modern .description {
+        color: #666;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .product-price {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #000;
+        margin: 0;
+    }
+
+    .btn-view-product {
+        padding: 10px 25px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+    }
+
+    /* Product Hidden State */
+    .product-item {
+        transition: all 0.5s ease;
+    }
+
+    .product-item.hidden {
+        display: none;
+    }
+
+    /* CTA Section */
+    .cta-section {
+        background: linear-gradient(135deg, #000 0%, #333 100%);
+        padding: 80px 0;
+        margin-top: 100px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-section::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+        animation: rotate 30s linear infinite;
+    }
+
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .cta-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .cta-section h3 {
+        color: #fff;
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        margin-bottom: 20px;
+    }
+
+    .cta-section p {
+        color: #ccc;
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+    }
+
+    .btn-cta {
+        background: var(--secondary-color);
+        color: #000;
+        border: none;
+        padding: 18px 50px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        transition: all 0.4s ease;
+        box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+    }
+
+    .btn-cta:hover {
+        background: #fff;
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(255, 255, 255, 0.3);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .hero-modern h1 {
+            font-size: 2.5rem;
+        }
+        .hero-modern .subtitle {
+            font-size: 1.2rem;
+        }
+        .section-title {
+            font-size: 2rem;
+        }
+        .product-img-wrapper {
+            height: 280px;
+        }
+        .filter-tabs {
+            gap: 10px;
+        }
+        .filter-btn {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+
+<!-- Hero Section Ultra Moderne -->
+<section class="hero-modern">
+    <div class="floating-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+    <div class="hero-content">
+        <h1>Découvrez Votre<br>Signature Olfactive</h1>
+        <p class="subtitle">Collection Exclusive de Parfums de Luxe</p>
+        <div class="hero-cta-group">
+            <div class="price-badge">
+                <i class="fas fa-tag"></i>
+                <span>Meilleurs Prix Garantis</span>
+            </div>
+            <a href="{{ url_for('catalog') }}" class="btn btn-primary btn-lg btn-explore">
+                <i class="fas fa-gem me-2"></i>
+                Explorer la Collection
+            </a>
+        </div>
+    </div>
+    <div class="scroll-indicator">
+        <i class="fas fa-chevron-down"></i>
+    </div>
+</section>
+
+<!-- Section Catalogue -->
+<section class="catalog-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="section-title">Nos Parfums Sélectionnés</h2>
+            <p class="section-subtitle">Des fragrances d'exception pour des moments inoubliables</p>
+        </div>
+
+        <!-- Filtres -->
+        <div class="filter-tabs">
+            <button class="filter-btn active" data-filter="all">
+                <span><i class="fas fa-th"></i> Tous</span>
+            </button>
+            <button class="filter-btn" data-filter="Homme">
+                <span><i class="fas fa-mars"></i> Homme</span>
+            </button>
+            <button class="filter-btn" data-filter="Femme">
+                <span><i class="fas fa-venus"></i> Femme</span>
+            </button>
+            <button class="filter-btn" data-filter="Unisexe">
+                <span><i class="fas fa-venus-mars"></i> Unisexe</span>
+            </button>
+            <button class="filter-btn" data-filter="bestseller">
+                <span><i class="fas fa-crown"></i> Bestsellers</span>
+            </button>
+        </div>
+
+        <!-- Produits -->
+        <div class="row g-4" id="products-grid">
+            {% for product in products %}
+            <div class="col-md-6 col-lg-4 product-item" data-category="{{ product.category }}">
+                <div class="product-card-modern">
+                    <div class="product-img-wrapper">
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                        <div class="product-overlay">
+                            <a href="{{ url_for('product_detail', id=product.id) }}" class="overlay-btn">
+                                <i class="fas fa-eye me-2"></i>Voir Détails
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <h5>{{ product.name }}</h5>
+                        <p class="brand-name">{{ product.brand }}</p>
+                        <p class="description flex-grow-1">{{ product.description[:80] }}...</p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <h4 class="product-price">${{ "%.2f"|format(product.price) }}</h4>
+                            <a href="{{ url_for('product_detail', id=product.id) }}" class="btn btn-outline-primary btn-view-product">
+                                <i class="fas fa-arrow-right me-1"></i>Voir
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
-    <div class="text-center mt-5">
-        <a href="{{ url_for('catalog') }}" class="btn btn-primary btn-lg">Voir Tous les Parfums</a>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section text-center">
+    <div class="container cta-content">
+        <h3>Explorez Notre Collection Complète</h3>
+        <p>Découvrez plus de fragrances exceptionnelles</p>
+        <a href="{{ url_for('catalog') }}" class="btn btn-cta btn-lg">
+            Voir Tous les Parfums
+            <i class="fas fa-arrow-right ms-2"></i>
+        </a>
     </div>
-</div>
+</section>
+
+<script>
+    // Système de filtrage
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const productItems = document.querySelectorAll('.product-item');
+
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Enlever la classe active de tous les boutons
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                // Ajouter la classe active au bouton cliqué
+                this.classList.add('active');
+
+                const filter = this.getAttribute('data-filter');
+
+                productItems.forEach(item => {
+                    const category = item.getAttribute('data-category');
+                    
+                    if (filter === 'all') {
+                        // Afficher tous les produits
+                        item.classList.remove('hidden');
+                        setTimeout(() => {
+                            item.style.opacity = '1';
+                            item.style.transform = 'scale(1)';
+                        }, 10);
+                    } else if (filter === 'bestseller') {
+                        // Logique pour bestsellers (vous pouvez ajouter un attribut data-bestseller)
+                        // Pour l'instant, affiche tous les produits
+                        item.classList.remove('hidden');
+                        setTimeout(() => {
+                            item.style.opacity = '1';
+                            item.style.transform = 'scale(1)';
+                        }, 10);
+                    } else if (category === filter) {
+                        // Afficher les produits correspondants
+                        item.classList.remove('hidden');
+                        setTimeout(() => {
+                            item.style.opacity = '1';
+                            item.style.transform = 'scale(1)';
+                        }, 10);
+                    } else {
+                        // Cacher les produits non correspondants
+                        item.style.opacity = '0';
+                        item.style.transform = 'scale(0.8)';
+                        setTimeout(() => {
+                            item.classList.add('hidden');
+                        }, 300);
+                    }
+                });
+            });
+        });
+
+        // Animation au scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        productItems.forEach(card => {
+            observer.observe(card);
+        });
+    });
+</script>
 {% endblock %}
