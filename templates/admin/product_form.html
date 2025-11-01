@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}{% if product %}Modifier{% else %}Ajouter{% endif %} un produit{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-{% if product %}edit{% else %}plus{% endif %}"></i>
+            {% if product %}Modifier{% else %}Ajouter{% endif %} un produit
+        </h2>
+        <a href="{{ url_for('admin_products') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nom *</label>
+                        <input type="text" class="form-control" name="name" value="{{ product.name if product else '' }}" required>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Marque *</label>
+                        <input type="text" class="form-control" name="brand" value="{{ product.brand if product else '' }}" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Description *</label>
+                    <textarea class="form-control" name="description" rows="4" required>{{ product.description if product else '' }}</textarea>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Prix ($) *</label>
+                        <input type="number" step="0.01" class="form-control" name="price" value="{{ product.price if product else '' }}" required>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Stock *</label>
+                        <input type="number" class="form-control" name="stock" value="{{ product.stock if product else '10' }}" required>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Taille (ml) *</label>
+                        <select class="form-select" name="size_ml" required>
+                            <option value="30" {% if product and product.size_ml == 30 %}selected{% endif %}>30ml</option>
+                            <option value="50" {% if product and product.size_ml == 50 %}selected{% elif not product %}selected{% endif %}>50ml</option>
+                            <option value="100" {% if product and product.size_ml == 100 %}selected{% endif %}>100ml</option>
+                            <option value="150" {% if product and product.size_ml == 150 %}selected{% endif %}>150ml</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Catégorie *</label>
+                        <select class="form-select" name="category" required>
+                            <option value="Homme" {% if product and product.category == 'Homme' %}selected{% endif %}>Homme</option>
+                            <option value="Femme" {% if product and product.category == 'Femme' %}selected{% endif %}>Femme</option>
+                            <option value="Unisexe" {% if product and product.category == 'Unisexe' %}selected{% endif %}>Unisexe</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Lien de l’image (image.bb ou autre) *</label>
+                        <input type="url" class="form-control" name="image_url" 
+                               value="{{ product.image_url if product else '' }}" 
+                               placeholder="https://i.ibb.co/xxx/nomimage.jpg" required>
+                        {% if product and product.image_url %}
+                        <div class="mt-2">
+                            <img src="{{ product.image_url }}" class="rounded" style="width: 100px; height: 100px; object-fit: cover;">
+                            <p class="small text-muted mb-0">Image actuelle</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save"></i> {% if product %}Modifier{% else %}Ajouter{% endif %}
+                    </button>
+                    <a href="{{ url_for('admin_products') }}" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-times"></i> Annuler
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

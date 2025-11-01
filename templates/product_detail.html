@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - OPALINE PARFUMS{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-6">
+            <img src="{{ product.image_url }}" class="img-fluid rounded" alt="{{ product.name }}">
+        </div>
+        
+        <div class="col-md-6">
+            <h1 class="mb-3">{{ product.name }}</h1>
+            <h5 class="text-muted mb-4">{{ product.brand }}</h5>
+            
+            {% if product.reviews %}
+            <div class="mb-3">
+                {% set avg_rating = (product.reviews|sum(attribute='rating')) / (product.reviews|length) %}
+                <span class="text-warning">
+                    {% for i in range(5) %}
+                        {% if i < avg_rating|round %}
+                            <i class="fas fa-star"></i>
+                        {% else %}
+                            <i class="far fa-star"></i>
+                        {% endif %}
+                    {% endfor %}
+                </span>
+                <span class="text-muted ms-2">({{ product.reviews|length }} avis)</span>
+            </div>
+            {% endif %}
+            
+            <p class="lead">{{ product.description }}</p>
+            
+            <div class="my-4">
+                <span class="badge bg-secondary me-2"><i class="fas fa-flask"></i> {{ product.size_ml }}ml</span>
+                <span class="badge bg-dark"><i class="fas fa-tag"></i> {{ product.category }}</span>
+            </div>
+            
+            <div class="d-flex align-items-center mb-4">
+                <h2 class="mb-0 me-4">${{ "%.2f"|format(product.price) }}</h2>
+                {% if product.stock > 0 %}
+                    <span class="badge bg-success">En stock ({{ product.stock }})</span>
+                {% else %}
+                    <span class="badge bg-danger">Rupture de stock</span>
+                {% endif %}
+            </div>
+            
+            {% if product.stock > 0 %}
+            <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-primary btn-lg w-100">
+                <i class="fas fa-cart-plus"></i> Ajouter au panier
+            </a>
+            {% else %}
+            <button class="btn btn-secondary btn-lg w-100" disabled>Indisponible</button>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="mb-4">Avis Clients</h3>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Donnez votre avis</h5>
+                    <form method="POST" action="{{ url_for('add_review', id=product.id) }}">
+                        <div class="mb-3">
+                            <label class="form-label">Votre nom (optionnel)</label>
+                            <input type="text" class="form-control" name="author_name" placeholder="Anonyme">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Note *</label>
+                            <div class="star-rating">
+                                <input type="radio" name="rating" value="5" id="star5" required>
+                                <label for="star5"><i class="fas fa-star"></i></label>
+                                
+                                <input type="radio" name="rating" value="4" id="star4">
+                                <label for="star4"><i class="fas fa-star"></i></label>
+                                
+                                <input type="radio" name="rating" value="3" id="star3">
+                                <label for="star3"><i class="fas fa-star"></i></label>
+                                
+                                <input type="radio" name="rating" value="2" id="star2">
+                                <label for="star2"><i class="fas fa-star"></i></label>
+                                
+                                <input type="radio" name="rating" value="1" id="star1">
+                                <label for="star1"><i class="fas fa-star"></i></label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Votre commentaire *</label>
+                            <textarea class="form-control" name="comment" rows="4" required></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Publier l'avis
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            {% for review in product.reviews|sort(attribute='created_at', reverse=true) %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="mb-1">{{ review.author_name }}</h6>
+                            <small class="text-muted">{{ review.created_at.strftime('%d/%m/%Y') }}</small>
+                        </div>
+                        <div class="text-warning">
+                            {% for i in range(review.rating) %}
+                                <i class="fas fa-star"></i>
+                            {% endfor %}
+                            {% for i in range(5 - review.rating) %}
+                                <i class="far fa-star"></i>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <p class="mb-0">{{ review.comment }}</p>
+                </div>
+            </div>
+            {% endfor %}
+            
+            {% if product.reviews|length == 0 %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Soyez le premier à donner votre avis !
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

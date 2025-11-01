@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Paiement - OPALINE PARFUMS{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="mb-4"><i class="fas fa-credit-card"></i> Paiement</h2>
+    
+    <div class="row">
+        <div class="col-lg-7">
+            {% if not checkout_info %}
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-shipping-fast"></i> Informations de livraison</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Prénom *</label>
+                                <input type="text" class="form-control" name="first_name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nom *</label>
+                                <input type="text" class="form-control" name="last_name" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Email *</label>
+                            <input type="email" class="form-control" name="email" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Téléphone *</label>
+                            <input type="tel" class="form-control" name="phone" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Adresse *</label>
+                            <input type="text" class="form-control" name="address" required>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Ville *</label>
+                                <input type="text" class="form-control" name="city" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Code postal *</label>
+                                <input type="text" class="form-control" name="postal_code" required>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-arrow-right"></i> Continuer vers le paiement
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-circle"></i> Informations enregistrées</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>{{ checkout_info.first_name }} {{ checkout_info.last_name }}</strong></p>
+                    <p class="mb-1"><i class="fas fa-envelope"></i> {{ checkout_info.email }}</p>
+                    <p class="mb-1"><i class="fas fa-phone"></i> {{ checkout_info.phone }}</p>
+                    <p class="mb-0"><i class="fas fa-map-marker-alt"></i> {{ checkout_info.address }}, {{ checkout_info.city }}, {{ checkout_info.postal_code }}</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fab fa-paypal"></i> Paiement sécurisé</h5>
+                </div>
+                <div class="card-body">
+                    <div id="paypal-button-container"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-5">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-shopping-bag"></i> Votre commande</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in items %}
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                        <div class="d-flex align-items-center">
+                            <img src="{{ item.product.image_url }}" class="rounded me-3" style="width: 60px; height: 60px; object-fit: cover;" alt="{{ item.product.name }}">
+                            <div>
+                                <h6 class="mb-0">{{ item.product.name }}</h6>
+                                <small class="text-muted">Qté: {{ item.quantity }}</small>
+                            </div>
+                        </div>
+                        <span>${{ "%.2f"|format(item.subtotal) }}</span>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Sous-total</span>
+                        <span>${{ "%.2f"|format(total) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Livraison</span>
+                        <span class="text-success">GRATUITE</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <strong>Total</strong>
+                        <strong class="h4 text-primary">${{ "%.2f"|format(total) }} CAD</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if checkout_info %}
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=CAD"></script>
+<script>
+    paypal.Buttons({
+        createOrder: function(data, actions) {
+            return actions.order.create({
+                purchase_units: [{
+                    amount: {
+                        value: '{{ "%.2f"|format(total) }}'
+                    }
+                }]
+            });
+        },
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(details) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ url_for("payment_success") }}';
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'paypal_order_id';
+                input.value = data.orderID;
+                
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            });
+        },
+        onError: function(err) {
+            console.error('Erreur PayPal:', err);
+            alert('Une erreur est survenue. Veuillez réessayer.');
+        }
+    }).render('#paypal-button-container');
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Panier - OPALINE PARFUMS{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="mb-4"><i class="fas fa-shopping-cart"></i> Mon Panier</h2>
+    
+    {% if items %}
+    <div class="row">
+        <div class="col-lg-8">
+            {% for item in items %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <img src="{{ item.product.image_url }}" class="img-fluid rounded" alt="{{ item.product.name }}">
+                        </div>
+                        <div class="col-md-5">
+                            <h5 class="mb-1">{{ item.product.name }}</h5>
+                            <p class="text-muted mb-1">{{ item.product.brand }}</p>
+                            <span class="badge bg-secondary">{{ item.product.size_ml }}ml</span>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <p class="mb-1 text-muted">Prix unitaire</p>
+                            <h5>${{ "%.2f"|format(item.product.price) }}</h5>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <p class="mb-1 text-muted">Quantité</p>
+                            <h5>{{ item.quantity }}</h5>
+                            <p class="mb-0"><small>Total: ${{ "%.2f"|format(item.subtotal) }}</small></p>
+                            <a href="{{ url_for('remove_from_cart', product_id=item.product.id) }}" class="btn btn-sm btn-outline-danger mt-2">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-receipt"></i> Résumé</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Sous-total</span>
+                        <span>${{ "%.2f"|format(total) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Livraison</span>
+                        <span class="text-success">GRATUITE</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total</strong>
+                        <strong class="h4 text-primary">${{ "%.2f"|format(total) }} CAD</strong>
+                    </div>
+                    
+                    <a href="{{ url_for('checkout') }}" class="btn btn-primary w-100 btn-lg mb-2">
+                        <i class="fas fa-lock"></i> Passer la commande
+                    </a>
+                    <a href="{{ url_for('catalog') }}" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-arrow-left"></i> Continuer mes achats
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6><i class="fas fa-shield-alt text-success"></i> Paiement sécurisé</h6>
+                    <p class="small text-muted mb-0">Vos données sont protégées via PayPal</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-shopping-cart fa-5x text-muted mb-4"></i>
+        <h3>Votre panier est vide</h3>
+        <p class="text-muted mb-4">Découvrez notre collection</p>
+        <a href="{{ url_for('catalog') }}" class="btn btn-primary btn-lg">
+            <i class="fas fa-search"></i> Explorer le catalogue
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

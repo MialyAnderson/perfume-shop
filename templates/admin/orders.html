@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des Commandes{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-shopping-bag"></i> Gestion des Commandes</h2>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>N° Commande</th>
+                            <th>Client</th>
+                            <th>Total</th>
+                            <th>Statut</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td><strong>{{ order.order_number }}</strong></td>
+                            <td>{{ order.customer_first_name }} {{ order.customer_last_name }}</td>
+                            <td><strong>${{ "%.2f"|format(order.total_amount) }}</strong></td>
+                            <td>
+                                <form method="POST" action="{{ url_for('admin_update_order_status', id=order.id) }}" class="d-inline">
+                                    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                                        <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>En attente</option>
+                                        <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Payé</option>
+                                        <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Traitement</option>
+                                        <option value="shipped" {% if order.status == 'shipped' %}selected{% endif %}>Expédié</option>
+                                        <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Livré</option>
+                                        <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>Annulé</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td>{{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#orderModal{{ order.id }}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <div class="modal fade" id="orderModal{{ order.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-dark text-white">
+                                        <h5 class="modal-title">Commande {{ order.order_number }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <h6>Client</h6>
+                                        <p>{{ order.customer_first_name }} {{ order.customer_last_name }}</p>
+                                        <p>{{ order.customer_email }} | {{ order.customer_phone }}</p>
+                                        <p>{{ order.shipping_address }}, {{ order.shipping_city }}, {{ order.shipping_postal_code }}</p>
+                                        
+                                        <h6 class="mt-4">Articles</h6>
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Produit</th>
+                                                    <th>Qté</th>
+                                                    <th>Prix</th>
+                                                    <th>Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in order.items %}
+                                                <tr>
+                                                    <td>{{ item.product.name }}</td>
+                                                    <td>{{ item.quantity }}</td>
+                                                    <td>${{ "%.2f"|format(item.product.price) }}</td>
+                                                    <td>${{ "%.2f"|format(item.subtotal) }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="table-active">
+                                                    <td colspan="3" class="text-end"><strong>TOTAL:</strong></td>
+                                                    <td><strong>${{ "%.2f"|format(order.total_amount) }}</strong></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% if orders|length == 0 %}
+            <div class="text-center py-5">
+                <i class="fas fa-shopping-bag fa-5x text-muted mb-3"></i>
+                <h4>Aucune commande</h4>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Commande confirmée - OPALINE PARFUMS{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-5">
+                <div class="mb-4">
+                    <i class="fas fa-check-circle fa-5x text-success"></i>
+                </div>
+                <h1 class="mb-3">Commande confirmée !</h1>
+                <p class="lead text-muted">Merci pour votre achat.</p>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-receipt"></i> Détails de votre commande</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Numéro de commande</h6>
+                            <h4 class="text-primary">{{ order.order_number }}</h4>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <h6 class="text-muted mb-2">Date</h6>
+                            <p class="mb-0">{{ order.created_at.strftime('%d/%m/%Y à %H:%M') }}</p>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mb-3">Articles commandés</h6>
+                    {% for item in order.items %}
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+                        <div class="d-flex align-items-center">
+                            <img src="{{ item.product.image_url }}" class="rounded me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                            <div>
+                                <h6 class="mb-1">{{ item.product.name }}</h6>
+                                <p class="text-muted small mb-0">{{ item.product.brand }} - {{ item.product.size_ml }}ml</p>
+                                <p class="text-muted small mb-0">Quantité: {{ item.quantity }}</p>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <p class="mb-0">${{ "%.2f"|format(item.product.price) }} × {{ item.quantity }}</p>
+                            <p class="mb-0"><strong>${{ "%.2f"|format(item.subtotal) }}</strong></p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <h5 class="mb-0">Total payé</h5>
+                        <h4 class="mb-0 text-primary">${{ "%.2f"|format(order.total_amount) }} CAD</h4>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-shipping-fast"></i> Livraison</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>{{ order.customer_first_name }} {{ order.customer_last_name }}</strong></p>
+                    <p class="mb-0">{{ order.shipping_address }}</p>
+                    <p class="mb-0">{{ order.shipping_city }}, {{ order.shipping_postal_code }}</p>
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle"></i> Prochaines étapes</h6>
+                <ul class="mb-0">
+                    <li>Email de confirmation envoyé à {{ order.customer_email }}</li>
+                    <li>Traitement sous 24-48h</li>
+                    <li>Livraison: 3-5 jours ouvrables</li>
+                </ul>
+            </div>
+            
+            <div class="text-center">
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg me-2">
+                    <i class="fas fa-home"></i> Accueil
+                </a>
+                <a href="{{ url_for('catalog') }}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-shopping-bag"></i> Continuer
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
