@@ -5,7 +5,9 @@
 
 from flask import Flask, render_template_string, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_mail import Mail, Message  # ← AJOUTEZ CECI
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
@@ -17,6 +19,22 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'votre-cle-secrete-super-longue-123456789'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max
+
+# Configuration PayPal
+app.config['PAYPAL_CLIENT_ID'] = os.environ.get('PAYPAL_CLIENT_ID', 'ARJwJ2EHwHtr_M5gw4myrAjEQ2x_WX8kGVhLiKX2sTr0SWTS-s9fsiXmgMvpNXfjl8i5epJ5Php8QdO-')
+app.config['PAYPAL_MODE'] = os.environ.get('PAYPAL_MODE', 'live')  # 'sandbox' pour test, 'live' pour production
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USERNAME'] = 'opaline.parfums@gmail.com'  # Votre Gmail
+app.config['MAIL_PASSWORD'] = 'uznuwxgbaspghwgu'  # App Password
+
+print("MAIL_USERNAME :", app.config['MAIL_USERNAME'])
+print("MAIL_PASSWORD :", app.config['MAIL_PASSWORD'])
+
+app.config['MAIL_DEFAULT_SENDER'] = 'OPALINE PARFUMS <opaline.parfums@gmail.com>'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 # Créer le dossier uploads s'il n'existe pas
@@ -33,9 +51,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///perfume_shop.
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'admin_login'
+
+# Initialisation Flask-Mail
+mail = Mail(app)
 
 # ========================================
 # MODÈLES
@@ -81,6 +103,17 @@ class Review(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     product = db.relationship('Product', backref='reviews')
+
+class OrderItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    subtotal = db.Column(db.Float, nullable=False)
+
+    # Relations
+    order = db.relationship('Order', backref=db.backref('items', lazy=True))
+    product = db.relationship('Product')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -216,34 +249,69 @@ def checkout():
         flash('Votre panier est vide', 'warning')
         return redirect(url_for('catalog'))
     
+    # Si POST, on sauvegarde les infos dans la session et on affiche PayPal
     if request.method == 'POST':
-        order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{Order.query.count() + 1:03d}"
-        
-        order = Order(
-            order_number=order_number,
-            customer_email=request.form['email'],
-            customer_first_name=request.form['first_name'],
-            customer_last_name=request.form['last_name'],
-            customer_phone=request.form['phone'],
-            shipping_address=request.form['address'],
-            shipping_city=request.form['city'],
-            shipping_postal_code=request.form['postal_code'],
-            total_amount=get_cart_total(),
-            status='paid'
-        )
-        
-        db.session.add(order)
-        db.session.commit()
-        
-        session['cart'] = []
+        session['checkout_info'] = {
+            'email': request.form['email'],
+            'first_name': request.form['first_name'],
+            'last_name': request.form['last_name'],
+            'phone': request.form['phone'],
+            'address': request.form['address'],
+            'city': request.form['city'],
+            'postal_code': request.form['postal_code']
+        }
         session.modified = True
-        
-        flash(f'Commande {order_number} confirmée! Merci pour votre achat.', 'success')
-        return redirect(url_for('order_success', order_number=order_number))
+        # On reste sur la page checkout pour afficher PayPal
     
     items = get_cart_items()
     total = get_cart_total()
-    return render_template_string(CHECKOUT_TEMPLATE, items=items, total=total)
+    checkout_info = session.get('checkout_info', {})
+    
+    return render_template_string(CHECKOUT_TEMPLATE, 
+                                 items=items, 
+                                 total=total, 
+                                 checkout_info=checkout_info,
+                                 paypal_client_id=app.config['PAYPAL_CLIENT_ID'])
+
+@app.route('/payment-success', methods=['POST'])
+def payment_success():
+    """Route appelée après le paiement PayPal réussi"""
+    if not session.get('checkout_info') or not get_cart():
+        flash('Erreur lors de la validation du paiement', 'danger')
+        return redirect(url_for('catalog'))
+    
+    checkout_info = session['checkout_info']
+    order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{Order.query.count() + 1:03d}"
+    
+    # Récupérer l'ID de transaction PayPal depuis le formulaire
+    paypal_order_id = request.form.get('paypal_order_id', 'N/A')
+    
+    order = Order(
+        order_number=order_number,
+        customer_email=checkout_info['email'],
+        customer_first_name=checkout_info['first_name'],
+        customer_last_name=checkout_info['last_name'],
+        customer_phone=checkout_info['phone'],
+        shipping_address=checkout_info['address'],
+        shipping_city=checkout_info['city'],
+        shipping_postal_code=checkout_info['postal_code'],
+        total_amount=get_cart_total(),
+        status='paid'
+    )
+    
+    db.session.add(order)
+    db.session.commit()
+
+    print("Email client :", order.customer_email)
+    send_order_confirmation(order)
+
+    # Vider le panier et les infos de checkout
+    session['cart'] = []
+    session.pop('checkout_info', None)
+    session.modified = True
+    
+    flash(f'Paiement confirmé ! Commande {order_number} enregistrée.', 'success')
+    return redirect(url_for('order_success', order_number=order_number))
 
 @app.route('/order-success/<order_number>')
 def order_success(order_number):
@@ -362,6 +430,112 @@ def admin_update_order_status(id):
     db.session.commit()
     flash('Statut mis à jour', 'success')
     return redirect(url_for('admin_orders'))
+
+def send_order_confirmation(order):
+    """Envoie un email de confirmation de commande"""
+    try:
+        # Créer le contenu de l'email
+        products_html = ""
+        for item in order.items:
+            products_html += f"""
+            <tr>
+                <td>{item.product.name}</td>
+                <td>{item.quantity}</td>
+                <td>{item.product.price:.2f}$</td>
+                <td>{item.subtotal:.2f}$</td>
+            </tr>
+            """
+        
+        # Template HTML de l'email
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #000; padding: 20px; text-align: center;">
+                <h1 style="color: #fff; margin: 0;">OPALINE PARFUMS</h1>
+            </div>
+            
+            <div style="padding: 30px; background-color: #f9f9f9;">
+                <h2 style="color: #333;">Merci pour votre commande !</h2>
+                
+                <p>Bonjour {order.customer_first_name} {order.customer_last_name},</p>
+                
+                <p>Votre commande a été confirmée avec succès. Voici les détails :</p>
+                
+                <div style="background-color: #fff; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                    <h3 style="margin-top: 0;">Commande #{order.id}</h3>
+                    <p><strong>Date :</strong> {order.created_at.strftime('%d/%m/%Y à %H:%M')}</p>
+                    
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                        <thead>
+                            <tr style="background-color: #f0f0f0;">
+                                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Produit</th>
+                                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Qté</th>
+                                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Prix</th>
+                                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {products_html}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" style="padding: 15px 10px; text-align: right; border-top: 2px solid #ddd;"><strong>TOTAL :</strong></td>
+                                <td style="padding: 15px 10px; text-align: right; border-top: 2px solid #ddd;"><strong>{order.total_amount:.2f}$ CAD</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    
+                    <h4>Adresse de livraison :</h4>
+                    <p style="margin: 5px 0;">{order.shipping_address}</p>
+                    <p style="margin: 5px 0;">{order.shipping_city}, {order.shipping_postal_code}</p>
+                    
+                    <p style="margin-top: 20px;"><strong>Email :</strong> {order.customer_email}</p>
+                    <p><strong>Téléphone :</strong> {order.customer_phone}</p>
+                </div>
+                
+                <p>Votre commande sera traitée dans les plus brefs délais.</p>
+                <p>Vous recevrez un email de suivi dès l'expédition.</p>
+                
+                <p style="margin-top: 30px;">Merci de votre confiance !</p>
+                <p><strong>L'équipe OPALINE PARFUMS</strong></p>
+            </div>
+            
+            <div style="background-color: #333; padding: 20px; text-align: center; color: #fff; font-size: 12px;">
+                <p>© 2025 OPALINE PARFUMS - Tous droits réservés</p>
+                <p>Pour toute question : opaline.parfums@gmail.com</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Créer et envoyer l'email
+        msg = Message(
+            subject=f"Confirmation de commande #{order.id} - OPALINE PARFUMS",
+            recipients=[order.customer_email],
+            html=html_body
+        )
+        
+        mail.send(msg)
+        return True
+        
+    except Exception as e:
+        print(f"Erreur lors de l'envoi de l'email: {e}")
+        return False
+
+@app.route('/test-mail')
+def test_mail():
+    try:
+        msg = Message(
+            subject="Test de mail Flask",
+            recipients=["andyrakotondradano@gmail.com"],  # mets ici ton vrai email
+            body="Ceci est un test depuis OPALINE PARFUMS."
+        )
+        mail.send(msg)
+        return "✅ Email envoyé avec succès !"
+    except Exception as e:
+        print("❌ Erreur :", e)
+        return f"Erreur : {e}"
+
 
 # ========================================
 # TEMPLATES HTML
@@ -524,7 +698,7 @@ INDEX_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
                         
                         <p class="card-text text-truncate">{{ product.description }}</p>
                         <div class="d-flex justify-content-between align-items-center">
-                            <h4 class="text-primary mb-0">{{ "%.2f"|format(product.price) }} $</h4>
+                            <h4 class="text-primary mb-0">{{ "%.2f"|format(product.price) }}$</h4>
                         </div>
                     </div>
                 </a>
@@ -577,7 +751,7 @@ CATALOG_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', ''
                         {% endif %}
                         
                         <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="text-primary mb-0">{{ "%.2f"|format(product.price) }} $</h5>
+                            <h5 class="text-primary mb-0">{{ "%.2f"|format(product.price) }}$</h5>
                             <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-sm btn-primary" onclick="event.stopPropagation();">
                                 <i class="fas fa-cart-plus"></i>
                             </a>
@@ -616,7 +790,7 @@ PRODUCT_DETAIL_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
             </div>
             {% endif %}
             
-            <h3 class="text-primary mb-4">{{ "%.2f"|format(product.price) }} $</h3>
+            <h3 class="text-primary mb-4">{{ "%.2f"|format(product.price) }}$</h3>
             <p class="mb-4">{{ product.description }}</p>
             <p><strong>Taille:</strong> {{ product.size_ml }}ml</p>
             <p><strong>Stock:</strong> {{ product.stock }} disponible(s)</p>
@@ -725,9 +899,9 @@ CART_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
                             </div>
                         </div>
                     </td>
-                    <td>{{ "%.2f"|format(item.product.price) }} $</td>
+                    <td>{{ "%.2f"|format(item.product.price) }}$</td>
                     <td>{{ item.quantity }}</td>
-                    <td><strong>{{ "%.2f"|format(item.subtotal) }} $</strong></td>
+                    <td><strong>{{ "%.2f"|format(item.subtotal) }}$</strong></td>
                     <td>
                         <a href="{{ url_for('remove_from_cart', product_id=item.product.id) }}" 
                            class="btn btn-sm btn-danger">
@@ -740,7 +914,7 @@ CART_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
             <tfoot>
                 <tr>
                     <th colspan="3" class="text-end">Total:</th>
-                    <th colspan="2"><h4 class="text-primary mb-0">{{ "%.2f"|format(total) }} $</h4></th>
+                    <th colspan="2"><h4 class="text-primary mb-0">{{ "%.2f"|format(total) }}$</h4></th>
                 </tr>
             </tfoot>
         </table>
@@ -770,10 +944,12 @@ CHECKOUT_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '
     
     <div class="row">
         <div class="col-md-8">
+            {% if not checkout_info %}
+            <!-- Étape 1: Formulaire d'adresse de livraison -->
             <div class="card mb-4">
                 <div class="card-header"><h5>Informations de livraison</h5></div>
                 <div class="card-body">
-                    <form method="POST">
+                    <form method="POST" id="checkout-form">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Prénom *</label>
@@ -813,11 +989,40 @@ CHECKOUT_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '
                         </div>
                         
                         <button type="submit" class="btn btn-primary btn-lg w-100">
-                            <i class="fas fa-check"></i> Confirmer la commande
+                            <i class="fas fa-arrow-right"></i> Continuer vers le paiement
                         </button>
                     </form>
                 </div>
             </div>
+            {% else %}
+            <!-- Étape 2: Informations validées + Bouton PayPal -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-circle"></i> Informations de livraison confirmées</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>{{ checkout_info.first_name }} {{ checkout_info.last_name }}</strong></p>
+                    <p class="mb-1">{{ checkout_info.address }}</p>
+                    <p class="mb-1">{{ checkout_info.postal_code }} {{ checkout_info.city }}</p>
+                    <p class="mb-0">{{ checkout_info.email }} - {{ checkout_info.phone }}</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header"><h5><i class="fab fa-paypal"></i> Paiement sécurisé avec PayPal</h5></div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Cliquez sur le bouton PayPal ci-dessous pour finaliser votre paiement de manière sécurisée.</p>
+                    
+                    <!-- Bouton PayPal -->
+                    <div id="paypal-button-container"></div>
+                    
+                    <!-- Formulaire caché pour soumettre après paiement -->
+                    <form id="payment-form" method="POST" action="{{ url_for('payment_success') }}" style="display:none;">
+                        <input type="hidden" name="paypal_order_id" id="paypal-order-id">
+                    </form>
+                </div>
+            </div>
+            {% endif %}
         </div>
         
         <div class="col-md-4">
@@ -827,19 +1032,55 @@ CHECKOUT_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '
                     {% for item in items %}
                     <div class="d-flex justify-content-between mb-2">
                         <span>{{ item.product.name }} x{{ item.quantity }}</span>
-                        <span>{{ "%.2f"|format(item.subtotal) }} $</span>
+                        <span>{{ "%.2f"|format(item.subtotal) }}$</span>
                     </div>
                     {% endfor %}
                     <hr>
                     <div class="d-flex justify-content-between">
                         <strong>Total:</strong>
-                        <h4 class="text-primary mb-0">{{ "%.2f"|format(total) }} $</h4>
+                        <h4 class="text-primary mb-0">{{ "%.2f"|format(total) }}$ CAD</h4>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+{% if checkout_info %}
+<!-- SDK PayPal -->
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=CAD"></script>
+<script>
+    paypal.Buttons({
+        // Configuration de la commande PayPal
+        createOrder: function(data, actions) {
+            return actions.order.create({
+                purchase_units: [{
+                    amount: {
+                        value: '{{ "%.2f"|format(total) }}',
+                        currency_code: 'CAD'
+                    },
+                    description: 'Achat OPALINE PARFUMS'
+                }]
+            });
+        },
+        
+        // Après le paiement approuvé
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(details) {
+                // Paiement réussi !
+                document.getElementById('paypal-order-id').value = data.orderID;
+                document.getElementById('payment-form').submit();
+            });
+        },
+        
+        // En cas d'erreur
+        onError: function(err) {
+            alert('Une erreur est survenue lors du paiement. Veuillez réessayer.');
+            console.error(err);
+        }
+    }).render('#paypal-button-container');
+</script>
+{% endif %}
 {% endblock %}
 ''')
 
@@ -856,7 +1097,7 @@ ORDER_SUCCESS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %
         <div class="card-header"><h5>Détails de la commande</h5></div>
         <div class="card-body">
             <p><strong>Numéro de commande:</strong> {{ order.order_number }}</p>
-            <p><strong>Montant total:</strong> {{ "%.2f"|format(order.total_amount) } $</p>
+            <p><strong>Montant total:</strong> {{ "%.2f"|format(order.total_amount) }}$</p>
             <p><strong>Statut:</strong> <span class="badge bg-success">{{ order.status }}</span></p>
             <hr>
             <h6>Informations de livraison:</h6>
@@ -1136,7 +1377,7 @@ ADMIN_DASHBOARD_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h3 style="color: #000;">{{ "%.2f"|format(total_revenue) }} $</h3>
+                    <h3 style="color: #000;">{{ "%.2f"|format(total_revenue) }}$</h3>
                     <p class="text-muted">Chiffre d'Affaires</p>
                 </div>
             </div>
@@ -1178,7 +1419,7 @@ ADMIN_DASHBOARD_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock
                             <tr>
                                 <td>{{ order.order_number }}</td>
                                 <td>{{ order.customer_first_name }} {{ order.customer_last_name }}</td>
-                                <td>{{ "%.2f"|format(order.total_amount) }}  $</td>
+                                <td>{{ "%.2f"|format(order.total_amount) }}$</td>
                                 <td><span class="badge">{{ order.status }}</span></td>
                             </tr>
                             {% endfor %}
@@ -1239,7 +1480,7 @@ ADMIN_PRODUCTS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock 
                     <td>{{ product.name }}</td>
                     <td>{{ product.brand }}</td>
                     <td><span class="badge">{{ product.category }}</span></td>
-                    <td>{{ "%.2f"|format(product.price) }}  $</td>
+                    <td>{{ "%.2f"|format(product.price) }}$</td>
                     <td>
                         {% if product.stock < 5 %}
                         <span class="badge bg-danger">{{ product.stock }}</span>
@@ -1376,7 +1617,7 @@ ADMIN_ORDERS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}
                     <td><strong>{{ order.order_number }}</strong></td>
                     <td>{{ order.customer_first_name }} {{ order.customer_last_name }}</td>
                     <td>{{ order.customer_email }}</td>
-                    <td>{{ "%.2f"|format(order.total_amount) }} $</td>
+                    <td>{{ "%.2f"|format(order.total_amount) }}$</td>
                     <td>
                         <form method="POST" action="{{ url_for('admin_update_order_status', id=order.id) }}" style="display:inline;">
                             <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -1447,5 +1688,6 @@ if __name__ == '__main__':
     print("   Username: admin")
     print("   Password: admin123")
     print("\n" + "="*50 + "\n")
+    
     
     app.run(debug=True, host='0.0.0.0', port=5000)
