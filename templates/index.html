@@ -447,65 +447,291 @@
         display: none;
     }
 
-    /* CTA Section */
+    /* ========================================
+       CTA SECTION ULTRA VISIBLE
+       ======================================== */
     .cta-section {
-        background: linear-gradient(135deg, #000 0%, #333 100%);
-        padding: 80px 0;
+        background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+        padding: 100px 0;
         margin-top: 100px;
         position: relative;
         overflow: hidden;
+        min-height: 450px;
     }
 
-    .cta-section::before {
+    /* Animation de fond ULTRA VISIBLE - Gradient Conique Rotatif */
+    .cta-background-animation {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 200%;
+        height: 200%;
+        transform: translate(-50%, -50%);
+        background: 
+            conic-gradient(from 0deg at 50% 50%, 
+                transparent 0deg,
+                rgba(212, 175, 55, 0.4) 60deg,
+                transparent 120deg,
+                rgba(212, 175, 55, 0.3) 180deg,
+                transparent 240deg,
+                rgba(212, 175, 55, 0.4) 300deg,
+                transparent 360deg
+            ),
+            radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.15) 0%, transparent 60%);
+        animation: rotateGlowUltra 12s linear infinite;
+        pointer-events: none;
+        filter: blur(2px);
+    }
+
+    @keyframes rotateGlowUltra {
+        0% {
+            transform: translate(-50%, -50%) rotate(0deg) scale(1);
+            opacity: 0.9;
+        }
+        50% {
+            transform: translate(-50%, -50%) rotate(180deg) scale(1.2);
+            opacity: 1;
+        }
+        100% {
+            transform: translate(-50%, -50%) rotate(360deg) scale(1);
+            opacity: 0.9;
+        }
+    }
+
+    /* Particules Scintillantes TRÈS VISIBLES */
+    .cta-particles {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+            radial-gradient(3px 3px at 15% 25%, rgba(212, 175, 55, 0.6), transparent),
+            radial-gradient(4px 4px at 45% 15%, rgba(212, 175, 55, 0.5), transparent),
+            radial-gradient(3px 3px at 75% 35%, rgba(212, 175, 55, 0.6), transparent),
+            radial-gradient(4px 4px at 25% 65%, rgba(212, 175, 55, 0.5), transparent),
+            radial-gradient(3px 3px at 85% 75%, rgba(212, 175, 55, 0.6), transparent),
+            radial-gradient(4px 4px at 55% 85%, rgba(212, 175, 55, 0.5), transparent),
+            radial-gradient(3px 3px at 10% 90%, rgba(212, 175, 55, 0.6), transparent),
+            radial-gradient(4px 4px at 90% 10%, rgba(212, 175, 55, 0.5), transparent);
+        background-size: 100% 100%;
+        animation: sparkleUltra 8s ease-in-out infinite;
+        pointer-events: none;
+    }
+
+    @keyframes sparkleUltra {
+        0%, 100% {
+            opacity: 0.4;
+            transform: scale(1);
+        }
+        25% {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        50% {
+            opacity: 0.6;
+            transform: scale(0.95);
+        }
+        75% {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+    }
+
+    /* Orbes Lumineux Flottants */
+    .cta-glow-orbs {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+    }
+
+    .glow-orb {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(212, 175, 55, 0.4) 0%, transparent 70%);
+        filter: blur(20px);
+    }
+
+    .orb-1 {
+        width: 250px;
+        height: 250px;
+        top: 10%;
+        left: 15%;
+        animation: floatOrb1 15s ease-in-out infinite;
+    }
+
+    .orb-2 {
+        width: 300px;
+        height: 300px;
+        top: 60%;
+        right: 10%;
+        animation: floatOrb2 18s ease-in-out infinite;
+    }
+
+    .orb-3 {
+        width: 200px;
+        height: 200px;
+        bottom: 15%;
+        left: 50%;
+        animation: floatOrb3 20s ease-in-out infinite;
+    }
+
+    @keyframes floatOrb1 {
+        0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.5;
+        }
+        50% {
+            transform: translate(50px, 80px) scale(1.3);
+            opacity: 0.8;
+        }
+    }
+
+    @keyframes floatOrb2 {
+        0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.6;
+        }
+        50% {
+            transform: translate(-60px, -70px) scale(1.4);
+            opacity: 0.9;
+        }
+    }
+
+    @keyframes floatOrb3 {
+        0%, 100% {
+            transform: translate(-50%, 0) scale(1);
+            opacity: 0.4;
+        }
+        50% {
+            transform: translate(-50%, -50px) scale(1.2);
+            opacity: 0.7;
+        }
+    }
+
+    /* Contenu */
+    .cta-content {
+        position: relative;
+        z-index: 10;
+    }
+
+    .cta-section h3 {
+        color: #fff;
+        font-size: 2.8rem;
+        font-weight: 800;
+        letter-spacing: 2px;
+        margin-bottom: 20px;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        animation: fadeInUp 1s ease;
+    }
+
+    .cta-section p {
+        color: #ccc;
+        font-size: 1.3rem;
+        margin-bottom: 40px;
+        font-weight: 300;
+        letter-spacing: 1px;
+        animation: fadeInUp 1s ease 0.2s;
+        animation-fill-mode: both;
+    }
+
+    /* Bouton CTA avec effet lumineux pulsé */
+    .btn-cta {
+        background: var(--secondary-color);
+        color: #000;
+        border: none;
+        padding: 20px 50px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        font-size: 1.2rem;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+        animation: fadeInUp 1s ease 0.4s, pulseGlowButton 2s ease-in-out infinite;
+        animation-fill-mode: both;
+        box-shadow: 
+            0 10px 40px rgba(212, 175, 55, 0.4),
+            0 0 20px rgba(212, 175, 55, 0.3),
+            inset 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-cta::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.4);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    .btn-cta:hover::before {
+        width: 400px;
+        height: 400px;
+    }
+
+    .btn-cta::after {
         content: '';
         position: absolute;
         top: -50%;
         left: -50%;
         width: 200%;
         height: 200%;
-        background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
-        animation: rotate 30s linear infinite;
+        background: linear-gradient(
+            45deg,
+            transparent 30%,
+            rgba(255, 255, 255, 0.3) 50%,
+            transparent 70%
+        );
+        animation: shimmer 3s infinite;
     }
 
-    @keyframes rotate {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-
-    .cta-content {
-        position: relative;
-        z-index: 2;
-    }
-
-    .cta-section h3 {
-        color: #fff;
-        font-size: 2.5rem;
-        font-weight: 700;
-        letter-spacing: 2px;
-        margin-bottom: 20px;
-    }
-
-    .cta-section p {
-        color: #ccc;
-        font-size: 1.2rem;
-        margin-bottom: 30px;
-    }
-
-    .btn-cta {
-        background: var(--secondary-color);
-        color: #000;
-        border: none;
-        padding: 18px 50px;
-        font-weight: 700;
-        letter-spacing: 1px;
-        transition: all 0.4s ease;
-        box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+    @keyframes shimmer {
+        0% {
+            transform: translateX(-100%) translateY(-100%) rotate(45deg);
+        }
+        100% {
+            transform: translateX(100%) translateY(100%) rotate(45deg);
+        }
     }
 
     .btn-cta:hover {
         background: #fff;
-        transform: translateY(-5px);
-        box-shadow: 0 15px 40px rgba(255, 255, 255, 0.3);
+        color: #000;
+        transform: translateY(-8px) scale(1.08);
+        box-shadow: 
+            0 20px 60px rgba(212, 175, 55, 0.7),
+            0 0 40px rgba(212, 175, 55, 0.6),
+            inset 0 0 20px rgba(212, 175, 55, 0.2);
+    }
+
+    .btn-cta i {
+        position: relative;
+        z-index: 2;
+        transition: transform 0.3s ease;
+    }
+
+    .btn-cta:hover i {
+        transform: translateX(5px);
+    }
+
+    @keyframes pulseGlowButton {
+        0%, 100% {
+            box-shadow: 
+                0 10px 40px rgba(212, 175, 55, 0.4),
+                0 0 20px rgba(212, 175, 55, 0.3);
+        }
+        50% {
+            box-shadow: 
+                0 15px 60px rgba(212, 175, 55, 0.7),
+                0 0 40px rgba(212, 175, 55, 0.6);
+        }
     }
 
     /* Responsive */
@@ -528,6 +754,107 @@
         .filter-btn {
             padding: 10px 20px;
             font-size: 0.9rem;
+        }
+
+        /* CTA Mobile Optimisé */
+        .cta-section {
+            padding: 80px 0;
+            min-height: 400px;
+        }
+
+        .cta-section h3 {
+            font-size: 2rem;
+        }
+
+        .cta-section p {
+            font-size: 1.1rem;
+        }
+
+        /* Animation ULTRA RAPIDE sur mobile */
+        .cta-background-animation {
+            width: 250%;
+            height: 250%;
+            animation-duration: 8s;
+        }
+
+        @keyframes rotateGlowUltra {
+            0% {
+                transform: translate(-50%, -50%) rotate(0deg) scale(1.3);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) rotate(180deg) scale(1.5);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg) scale(1.3);
+                opacity: 1;
+            }
+        }
+
+        .cta-particles {
+            animation-duration: 5s;
+        }
+
+        .glow-orb {
+            filter: blur(15px);
+        }
+
+        .orb-1 {
+            width: 200px;
+            height: 200px;
+            animation-duration: 10s;
+        }
+
+        .orb-2 {
+            width: 220px;
+            height: 220px;
+            animation-duration: 12s;
+        }
+
+        .orb-3 {
+            width: 180px;
+            height: 180px;
+            animation-duration: 14s;
+        }
+
+        .btn-cta {
+            padding: 18px 40px;
+            font-size: 1.1rem;
+        }
+    }
+
+    /* Pour les performances réduites */
+    @media (prefers-reduced-motion: reduce) {
+        .cta-background-animation,
+        .cta-particles,
+        .glow-orb {
+            animation: none;
+        }
+        
+        .cta-background-animation {
+            opacity: 0.6;
+        }
+        
+        .btn-cta {
+            animation: pulseGlowButton 3s ease-in-out infinite;
+        }
+    }
+
+    /* Fix pour petits écrans */
+    @media (max-width: 480px) {
+        .cta-section h3 {
+            font-size: 1.6rem;
+        }
+        
+        .cta-section p {
+            font-size: 1rem;
+            margin-bottom: 30px;
+        }
+        
+        .btn-cta {
+            padding: 16px 35px;
+            font-size: 1rem;
         }
     }
 </style>
@@ -625,8 +952,15 @@
     </div>
 </section>
 
-<!-- CTA Section -->
+<!-- CTA Section ULTRA VISIBLE -->
 <section class="cta-section text-center">
+    <div class="cta-background-animation"></div>
+    <div class="cta-particles"></div>
+    <div class="cta-glow-orbs">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+        <div class="glow-orb orb-3"></div>
+    </div>
     <div class="container cta-content">
         <h3>Explorez Notre Collection Complète</h3>
         <p>Découvrez plus de fragrances exceptionnelles</p>
