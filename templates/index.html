@@ -4,7 +4,6 @@
 
 {% block content %}
 <style>
-    /* Hero Section Ultra Moderne */
     .hero-modern {
         position: relative;
         min-height: 90vh;
@@ -33,7 +32,6 @@
         50% { opacity: 0.8; transform: scale(1.1) rotate(2deg); }
     }
 
-    /* Particules flottantes */
     .floating-particles {
         position: absolute;
         width: 100%;
@@ -117,7 +115,6 @@
         letter-spacing: 2px;
     }
 
-    /* Badge Prix */
     .hero-cta-group {
         display: flex;
         flex-direction: column;
@@ -186,7 +183,6 @@
         }
     }
 
-    /* Scroll Indicator */
     .scroll-indicator {
         position: absolute;
         bottom: 30px;
@@ -214,7 +210,6 @@
         }
     }
 
-    /* Section Catalogue */
     .catalog-section {
         background: #fafafa;
         padding: 100px 0;
@@ -252,7 +247,6 @@
         letter-spacing: 1px;
     }
 
-    /* Filtres Modernes */
     .filter-tabs {
         display: flex;
         justify-content: center;
@@ -323,7 +317,6 @@
         margin-right: 8px;
     }
 
-    /* Product Cards Améliorées */
     .product-card-modern {
         border: none;
         border-radius: 0;
@@ -357,7 +350,6 @@
         transform: scale(1.12) rotate(2deg);
     }
 
-    /* Overlay au survol */
     .product-overlay {
         position: absolute;
         top: 0;
@@ -397,7 +389,6 @@
         transform: scale(1.05);
     }
 
-    /* Card Body */
     .product-card-modern .card-body {
         padding: 25px;
     }
@@ -438,7 +429,6 @@
         transition: all 0.3s ease;
     }
 
-    /* Product Hidden State */
     .product-item {
         transition: all 0.5s ease;
     }
@@ -447,9 +437,6 @@
         display: none;
     }
 
-    /* ========================================
-       CTA SECTION ULTRA VISIBLE
-       ======================================== */
     .cta-section {
         background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
         padding: 100px 0;
@@ -459,7 +446,6 @@
         min-height: 450px;
     }
 
-    /* Animation de fond ULTRA VISIBLE - Gradient Conique Rotatif */
     .cta-background-animation {
         position: absolute;
         top: 50%;
@@ -498,7 +484,6 @@
         }
     }
 
-    /* Particules Scintillantes TRÈS VISIBLES */
     .cta-particles {
         position: absolute;
         top: 0;
@@ -538,7 +523,6 @@
         }
     }
 
-    /* Orbes Lumineux Flottants */
     .cta-glow-orbs {
         position: absolute;
         top: 0;
@@ -612,7 +596,6 @@
         }
     }
 
-    /* Contenu */
     .cta-content {
         position: relative;
         z-index: 10;
@@ -638,7 +621,6 @@
         animation-fill-mode: both;
     }
 
-    /* Bouton CTA avec effet lumineux pulsé */
     .btn-cta {
         background: var(--secondary-color);
         color: #000;
@@ -734,7 +716,6 @@
         }
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
         .hero-modern h1 {
             font-size: 2.5rem;
@@ -756,7 +737,6 @@
             font-size: 0.9rem;
         }
 
-        /* CTA Mobile Optimisé */
         .cta-section {
             padding: 80px 0;
             min-height: 400px;
@@ -770,7 +750,6 @@
             font-size: 1.1rem;
         }
 
-        /* Animation ULTRA RAPIDE sur mobile */
         .cta-background-animation {
             width: 250%;
             height: 250%;
@@ -824,7 +803,6 @@
         }
     }
 
-    /* Pour les performances réduites */
     @media (prefers-reduced-motion: reduce) {
         .cta-background-animation,
         .cta-particles,
@@ -841,7 +819,6 @@
         }
     }
 
-    /* Fix pour petits écrans */
     @media (max-width: 480px) {
         .cta-section h3 {
             font-size: 1.6rem;
@@ -859,7 +836,6 @@
     }
 </style>
 
-<!-- Hero Section Ultra Moderne -->
 <section class="hero-modern">
     <div class="floating-particles">
         <div class="particle"></div>
@@ -894,7 +870,6 @@
     </div>
 </section>
 
-<!-- Section Catalogue -->
 <section class="catalog-section">
     <div class="container">
         <div class="text-center mb-5">
@@ -902,7 +877,6 @@
             <p class="section-subtitle">Des fragrances d'exception pour des moments inoubliables</p>
         </div>
 
-        <!-- Filtres -->
         <div class="filter-tabs">
             <button class="filter-btn active" data-filter="all">
                 <span><i class="fas fa-th"></i> Tous</span>
@@ -921,7 +895,6 @@
             </button>
         </div>
 
-        <!-- Produits -->
         <div class="row g-4" id="products-grid">
             {% for product in products %}
             <div class="col-md-6 col-lg-4 product-item" data-category="{{ product.category }}">
@@ -939,7 +912,18 @@
                         <p class="brand-name">{{ product.brand }}</p>
                         <p class="description flex-grow-1">{{ product.description[:80] }}...</p>
                         <div class="d-flex justify-content-between align-items-center mt-3">
-                            <h4 class="product-price">${{ "%.2f"|format(product.price) }}</h4>
+                            {% if product.variants %}
+                                {% set prices = product.variants|map(attribute='price')|list %}
+                                {% set min_price = prices|min %}
+                                {% set max_price = prices|max %}
+                                {% if min_price == max_price %}
+                                    <h4 class="product-price">${{ "%.2f"|format(min_price) }}</h4>
+                                {% else %}
+                                    <h4 class="product-price">${{ "%.2f"|format(min_price) }} - ${{ "%.2f"|format(max_price) }}</h4>
+                                {% endif %}
+                            {% else %}
+                                <h4 class="product-price text-muted">Prix non disponible</h4>
+                            {% endif %}
                             <a href="{{ url_for('product_detail', id=product.id) }}" class="btn btn-outline-primary btn-view-product">
                                 <i class="fas fa-arrow-right me-1"></i>Voir
                             </a>
@@ -952,7 +936,6 @@
     </div>
 </section>
 
-<!-- CTA Section ULTRA VISIBLE -->
 <section class="cta-section text-center">
     <div class="cta-background-animation"></div>
     <div class="cta-particles"></div>
@@ -972,16 +955,13 @@
 </section>
 
 <script>
-    // Système de filtrage
     document.addEventListener('DOMContentLoaded', function() {
         const filterButtons = document.querySelectorAll('.filter-btn');
         const productItems = document.querySelectorAll('.product-item');
 
         filterButtons.forEach(button => {
             button.addEventListener('click', function() {
-                // Enlever la classe active de tous les boutons
                 filterButtons.forEach(btn => btn.classList.remove('active'));
-                // Ajouter la classe active au bouton cliqué
                 this.classList.add('active');
 
                 const filter = this.getAttribute('data-filter');
@@ -990,29 +970,24 @@
                     const category = item.getAttribute('data-category');
                     
                     if (filter === 'all') {
-                        // Afficher tous les produits
                         item.classList.remove('hidden');
                         setTimeout(() => {
                             item.style.opacity = '1';
                             item.style.transform = 'scale(1)';
                         }, 10);
                     } else if (filter === 'bestseller') {
-                        // Logique pour bestsellers (vous pouvez ajouter un attribut data-bestseller)
-                        // Pour l'instant, affiche tous les produits
                         item.classList.remove('hidden');
                         setTimeout(() => {
                             item.style.opacity = '1';
                             item.style.transform = 'scale(1)';
                         }, 10);
                     } else if (category === filter) {
-                        // Afficher les produits correspondants
                         item.classList.remove('hidden');
                         setTimeout(() => {
                             item.style.opacity = '1';
                             item.style.transform = 'scale(1)';
                         }, 10);
                     } else {
-                        // Cacher les produits non correspondants
                         item.style.opacity = '0';
                         item.style.transform = 'scale(0.8)';
                         setTimeout(() => {
@@ -1023,7 +998,6 @@
             });
         });
 
-        // Animation au scroll
         const observerOptions = {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'

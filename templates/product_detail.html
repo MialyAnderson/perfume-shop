@@ -97,6 +97,84 @@
         color: var(--secondary-color);
     }
 
+    /* SÉLECTEUR DE TAILLE */
+    .size-selector {
+        margin-bottom: 30px;
+    }
+    
+    .size-selector h6 {
+        font-weight: 700;
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+        color: #000;
+    }
+    
+    .size-options {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .size-option {
+        position: relative;
+    }
+    
+    .size-option input[type="radio"] {
+        display: none;
+    }
+    
+    .size-label {
+        display: block;
+        padding: 15px 25px;
+        border: 2px solid #e0e0e0;
+        background: #fff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        min-width: 120px;
+    }
+    
+    .size-label:hover {
+        border-color: var(--secondary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.2);
+    }
+    
+    .size-option input[type="radio"]:checked + .size-label {
+        border-color: var(--secondary-color);
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+        font-weight: 700;
+        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+    }
+    
+    .size-ml {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #000;
+        display: block;
+    }
+    
+    .size-price {
+        font-size: 1rem;
+        color: var(--secondary-color);
+        font-weight: 600;
+        display: block;
+        margin-top: 5px;
+    }
+    
+    .size-stock {
+        font-size: 0.8rem;
+        color: #666;
+        display: block;
+        margin-top: 3px;
+    }
+    
+    .out-of-stock .size-label {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f5f5f5;
+    }
+
     .price-section {
         background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
         padding: 30px;
@@ -171,7 +249,6 @@
         font-weight: 600;
     }
 
-    /* Reviews Section */
     .reviews-section {
         background: #fff;
         padding: 60px;
@@ -265,7 +342,6 @@
         margin-bottom: 20px;
     }
 
-    /* Star Rating Form */
     .star-rating {
         display: flex;
         flex-direction: row-reverse;
@@ -303,6 +379,10 @@
         }
         .reviews-section {
             padding: 40px 20px;
+        }
+        .size-label {
+            min-width: 100px;
+            padding: 12px 20px;
         }
     }
 </style>
@@ -343,40 +423,69 @@
                     
                     <div class="product-specs">
                         <div class="spec-badge">
-                            <i class="fas fa-flask"></i>
-                            {{ product.size_ml }}ml
-                        </div>
-                        <div class="spec-badge">
                             <i class="fas fa-tag"></i>
                             {{ product.category }}
                         </div>
                     </div>
                     
-                    <div class="price-section">
-                        <h2 class="product-price">${{ "%.2f"|format(product.price) }}</h2>
-                        {% if product.stock > 0 %}
-                            <span class="stock-badge in-stock">
-                                <i class="fas fa-check-circle me-1"></i>
-                                En stock ({{ product.stock }} disponibles)
-                            </span>
-                        {% else %}
-                            <span class="stock-badge out-of-stock">
-                                <i class="fas fa-times-circle me-1"></i>
-                                Rupture de stock
-                            </span>
-                        {% endif %}
+                    <!-- SÉLECTEUR DE TAILLE -->
+                    {% if product.variants %}
+                    <div class="size-selector">
+                        <h6><i class="fas fa-flask me-2"></i>Choisissez votre taille</h6>
+                        <div class="size-options">
+                            {% for variant in product.variants|sort(attribute='size_ml') %}
+                            <div class="size-option {% if variant.stock <= 0 %}out-of-stock{% endif %}">
+                                <input type="radio" 
+                                       name="variant" 
+                                       id="variant-{{ variant.id }}" 
+                                       value="{{ variant.id }}"
+                                       {% if variant.stock <= 0 %}disabled{% endif %}
+                                       {% if loop.first and variant.stock > 0 %}checked{% endif %}
+                                       onchange="updateSelectedVariant({{ variant.id }}, {{ variant.price }}, {{ variant.stock }}, {{ variant.size_ml }})">
+                                <label for="variant-{{ variant.id }}" class="size-label">
+                                    <span class="size-ml">{{ variant.size_ml }}ml</span>
+                                    <span class="size-price">${{ "%.2f"|format(variant.price) }}</span>
+                                    {% if variant.stock > 0 %}
+                                        <span class="size-stock">Stock: {{ variant.stock }}</span>
+                                    {% else %}
+                                        <span class="size-stock text-danger">Rupture</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                     
-                    {% if product.stock > 0 %}
-                    <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-primary btn-add-cart">
+                    <!-- Prix sélectionné -->
+                    <div class="price-section">
+                        <h2 class="product-price" id="selected-price">
+                            {% set first_available = product.variants|selectattr('stock', 'gt', 0)|first %}
+                            {% if first_available %}
+                                ${{ "%.2f"|format(first_available.price) }}
+                            {% else %}
+                                ${{ "%.2f"|format(product.variants[0].price) }}
+                            {% endif %}
+                        </h2>
+                        <span class="stock-badge in-stock" id="stock-status">
+                            {% if first_available %}
+                                <i class="fas fa-check-circle me-1"></i>
+                                En stock ({{ first_available.stock }} disponibles)
+                            {% else %}
+                                <i class="fas fa-times-circle me-1"></i>
+                                Rupture de stock
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <button type="button" class="btn btn-primary btn-add-cart" id="add-to-cart-btn" onclick="addToCart()">
                         <i class="fas fa-shopping-cart"></i>
                         Ajouter au Panier
-                    </a>
-                    {% else %}
-                    <button class="btn btn-secondary btn-add-cart" disabled>
-                        <i class="fas fa-ban"></i>
-                        Produit Indisponible
                     </button>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Aucune taille disponible pour ce produit
+                    </div>
                     {% endif %}
                     
                     <div class="security-badges">
@@ -397,11 +506,10 @@
             </div>
         </div>
         
-        <!-- Reviews -->
+        <!-- Reviews Section -->
         <div class="reviews-section">
             <h3><i class="fas fa-comments me-3"></i>Avis Clients</h3>
-            
-            <!-- Form -->
+
             <div class="review-form">
                 <h5>Donnez votre avis sur ce produit</h5>
                 <form method="POST" action="{{ url_for('add_review', id=product.id) }}">
@@ -442,8 +550,7 @@
                     </button>
                 </form>
             </div>
-            
-            <!-- Reviews List -->
+
             {% if product.reviews %}
                 {% for review in product.reviews|sort(attribute='created_at', reverse=true) %}
                 <div class="review-card">
@@ -474,4 +581,46 @@
         </div>
     </div>
 </section>
+
+<script>
+let selectedVariantId = null;
+
+{% if product.variants and product.variants|length > 0 %}
+    {% for variant in product.variants %}
+        {% if loop.first %}
+            selectedVariantId = {{ variant.id }};
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+function updateSelectedVariant(variantId, price, stock, sizeML) {
+    selectedVariantId = variantId;
+    document.getElementById('selected-price').textContent = '$' + price.toFixed(2);
+    
+    const stockStatus = document.getElementById('stock-status');
+    const addBtn = document.getElementById('add-to-cart-btn');
+    
+    if (stock > 0) {
+        stockStatus.innerHTML = '<i class="fas fa-check-circle me-1"></i>En stock (' + stock + ' disponibles)';
+        stockStatus.className = 'stock-badge in-stock';
+        addBtn.disabled = false;
+        addBtn.innerHTML = '<i class="fas fa-shopping-cart"></i> Ajouter au Panier';
+        addBtn.className = 'btn btn-primary btn-add-cart';
+    } else {
+        stockStatus.innerHTML = '<i class="fas fa-times-circle me-1"></i>Rupture de stock';
+        stockStatus.className = 'stock-badge out-of-stock';
+        addBtn.disabled = true;
+        addBtn.innerHTML = '<i class="fas fa-ban"></i> Produit Indisponible';
+        addBtn.className = 'btn btn-secondary btn-add-cart';
+    }
+}
+
+function addToCart() {
+    if (selectedVariantId) {
+        window.location.href = "{{ url_for('add_to_cart', variant_id=0) }}".replace('/0', '/' + selectedVariantId);
+    } else {
+        alert('Veuillez sélectionner une taille');
+    }
+}
+</script>
 {% endblock %}

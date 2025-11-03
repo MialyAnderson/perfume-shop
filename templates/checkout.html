@@ -259,7 +259,6 @@
         <div class="row">
             <div class="col-lg-7 mb-4">
                 {% if not checkout_info %}
-                <!-- Formulaire d'informations -->
                 <div class="form-card card">
                     <div class="card-header">
                         <h5><i class="fas fa-shipping-fast"></i>Informations de Livraison</h5>
@@ -310,7 +309,6 @@
                     </div>
                 </div>
                 {% else %}
-                <!-- Informations enregistrées -->
                 <div class="form-card card info-saved-card">
                     <h5><i class="fas fa-check-circle"></i>Informations Enregistrées</h5>
                     <p class="info-item"><i class="fas fa-user"></i><strong>{{ checkout_info.first_name }} {{ checkout_info.last_name }}</strong></p>
@@ -319,7 +317,6 @@
                     <p class="info-item"><i class="fas fa-map-marker-alt"></i>{{ checkout_info.address }}, {{ checkout_info.city }}, {{ checkout_info.postal_code }}</p>
                 </div>
                 
-                <!-- PayPal -->
                 <div class="paypal-card card">
                     <div class="card-header">
                         <h5><i class="fab fa-paypal"></i>Paiement Sécurisé PayPal</h5>
@@ -331,7 +328,6 @@
                 {% endif %}
             </div>
             
-            <!-- Résumé Commande -->
             <div class="col-lg-5">
                 <div class="summary-card card">
                     <div class="card-header">

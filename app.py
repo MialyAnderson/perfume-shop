@@ -1,8 +1,3 @@
-# ========================================
-# FICHIER: app.py (VERSION AVEC TEMPLATES/)
-# Application principale - Utilise render_template
-# ========================================
-
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -10,25 +5,17 @@ from flask_mail import Mail
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
-
-# Imports des modules
 from config import Config, ALLOWED_EXTENSIONS
-from models import db, Admin, Product, Order, OrderItem, Review
+from models import db, Admin, Product, Order, OrderItem, Review, ProductVariant
 from utils import get_cart, get_cart_total, get_cart_items, save_uploaded_file
 from email_service import send_order_confirmation
-
-# ========================================
-# INITIALISATION
-# ========================================
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Créer dossier uploads
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
-# Initialiser extensions
 db.init_app(app)
 migrate = Migrate(app, db)
 mail = Mail(app)
@@ -40,10 +27,6 @@ login_manager.login_view = 'admin_login'
 @login_manager.user_loader
 def load_user(user_id):
     return Admin.query.get(int(user_id))
-
-# ========================================
-# ROUTES PUBLIQUES
-# ========================================
 
 @app.route('/')
 def index():
@@ -91,21 +74,36 @@ def view_cart():
     total = get_cart_total()
     return render_template('cart.html', items=items, total=total)
 
-@app.route('/add-to-cart/<int:product_id>')
-def add_to_cart(product_id):
-    product = Product.query.get_or_404(product_id)
+@app.route('/add-to-cart/<int:variant_id>')
+def add_to_cart(variant_id):
+    """Ajoute une variante au panier"""
+    from models import ProductVariant, Product
+    
+    variant = ProductVariant.query.get_or_404(variant_id)
+    product = Product.query.get(variant.product_id)
+    
+    # Vérifier le stock
+    if variant.stock <= 0:
+        flash(f'{product.name} ({variant.size_ml}ml) est en rupture de stock', 'warning')
+        return redirect(request.referrer or url_for('catalog'))
+    
     cart = get_cart()
     
+    # Vérifier si la variante est déjà dans le panier
     for item in cart:
-        if item['product_id'] == product_id:
-            item['quantity'] += 1
-            session.modified = True
-            flash(f'{product.name} ajouté au panier!', 'success')
+        if item['variant_id'] == variant_id:
+            if item['quantity'] < variant.stock:
+                item['quantity'] += 1
+                session.modified = True
+                flash(f'{product.name} ({variant.size_ml}ml) ajouté au panier!', 'success')
+            else:
+                flash(f'Stock insuffisant pour {product.name} ({variant.size_ml}ml)', 'warning')
             return redirect(request.referrer or url_for('catalog'))
     
-    cart.append({'product_id': product_id, 'quantity': 1})
+    # Ajouter la variante pour la première fois
+    cart.append({'variant_id': variant_id, 'quantity': 1})
     session.modified = True
-    flash(f'{product.name} ajouté au panier!', 'success')
+    flash(f'{product.name} ({variant.size_ml}ml) ajouté au panier!', 'success')
     return redirect(request.referrer or url_for('catalog'))
 
 @app.route('/remove-from-cart/<int:product_id>')
@@ -114,6 +112,53 @@ def remove_from_cart(product_id):
     cart[:] = [item for item in cart if item['product_id'] != product_id]
     session.modified = True
     flash('Produit retiré du panier', 'info')
+    return redirect(url_for('view_cart'))
+
+@app.route('/cart/increase/<int:variant_id>')
+def increase_quantity(variant_id):
+    """Augmente la quantité d'une variante dans le panier"""
+    from models import ProductVariant, Product
+    
+    variant = ProductVariant.query.get_or_404(variant_id)
+    product = Product.query.get(variant.product_id)
+    cart = get_cart()
+    
+    for item in cart:
+        if item['variant_id'] == variant_id:
+            if item['quantity'] < variant.stock:
+                item['quantity'] += 1
+                session.modified = True
+                flash(f'Quantité augmentée pour {product.name} ({variant.size_ml}ml)', 'success')
+            else:
+                flash(f'Stock insuffisant. Disponible : {variant.stock}', 'warning')
+            return redirect(url_for('view_cart'))
+    
+    flash('Produit non trouvé dans le panier', 'error')
+    return redirect(url_for('view_cart'))
+
+
+@app.route('/cart/decrease/<int:variant_id>')
+def decrease_quantity(variant_id):
+    """Diminue la quantité d'une variante dans le panier"""
+    from models import ProductVariant, Product
+    
+    variant = ProductVariant.query.get_or_404(variant_id)
+    product = Product.query.get(variant.product_id)
+    cart = get_cart()
+    
+    for item in cart:
+        if item['variant_id'] == variant_id:
+            if item['quantity'] > 1:
+                item['quantity'] -= 1
+                session.modified = True
+                flash(f'Quantité diminuée pour {product.name} ({variant.size_ml}ml)', 'info')
+            else:
+                cart[:] = [i for i in cart if i['variant_id'] != variant_id]
+                session.modified = True
+                flash(f'{product.name} ({variant.size_ml}ml) retiré du panier', 'info')
+            return redirect(url_for('view_cart'))
+    
+    flash('Produit non trouvé dans le panier', 'error')
     return redirect(url_for('view_cart'))
 
 @app.route('/checkout', methods=['GET', 'POST'])
@@ -168,8 +213,7 @@ def payment_success():
     
     db.session.add(order)
     db.session.commit()
-    
-    # Ajouter items
+
     for item in get_cart_items():
         order_item = OrderItem(
             order_id=order.id,
@@ -179,11 +223,9 @@ def payment_success():
         )
         db.session.add(order_item)
     db.session.commit()
-    
-    # ENVOYER EMAIL
+
     send_order_confirmation(mail, order)
-    
-    # Vider panier
+
     session['cart'] = []
     session.pop('checkout_info', None)
     session.modified = True
@@ -196,10 +238,6 @@ def order_success(order_number):
     order = Order.query.filter_by(order_number=order_number).first_or_404()
     return render_template('order_success.html', order=order)
 
-# ========================================
-# ROUTES PAGES LÉGALES
-# ========================================
-
 @app.route('/politique-confidentialite')
 def privacy_policy():
     return render_template('legal/privacy.html')
@@ -211,10 +249,6 @@ def terms_of_sale():
 @app.route('/mentions-legales')
 def legal_notice():
     return render_template('legal/legal_notice.html')
-
-# ========================================
-# ROUTES ADMIN
-# ========================================
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -261,24 +295,38 @@ def admin_add_product():
         image_url = request.form.get('image_url')
 
         if not image_url:
-            flash('Veuillez coller le lien de l’image (ex: https://i.ibb.co/...)', 'danger')
+            flash('Veuillez coller le lien de l\'image', 'danger') 
             return redirect(url_for('admin_add_product'))
         
+        # Créer le produit
         product = Product(
             name=request.form['name'],
             brand=request.form['brand'],
             description=request.form['description'],
-            price=float(request.form['price']),
-            stock=int(request.form['stock']),
             category=request.form['category'],
-            size_ml=int(request.form['size_ml']),
             image_url=image_url
         )
-
+        
         db.session.add(product)
+        db.session.flush()  # Pour obtenir l'ID du produit
+        
+        # Créer les variantes (tailles)
+        variant_sizes = request.form.getlist('variant_size[]')
+        variant_prices = request.form.getlist('variant_price[]')
+        variant_stocks = request.form.getlist('variant_stock[]')
+        
+        for size, price, stock in zip(variant_sizes, variant_prices, variant_stocks):
+            if size and price:  # Vérifier que les champs ne sont pas vides
+                variant = ProductVariant(
+                    product_id=product.id,
+                    size_ml=int(size),
+                    price=float(price),
+                    stock=int(stock) if stock else 10
+                )
+                db.session.add(variant)
+        
         db.session.commit()
-
-        flash(f'Produit {product.name} ajouté avec succès!', 'success')
+        flash(f'Produit {product.name} ajouté avec {len(variant_sizes)} variantes!', 'success')
         return redirect(url_for('admin_products'))
     
     return render_template('admin/product_form.html', product=None)
@@ -292,27 +340,44 @@ def admin_edit_product(id):
         product.name = request.form['name']
         product.brand = request.form['brand']
         product.description = request.form['description']
-        product.price = float(request.form['price'])
-        product.stock = int(request.form['stock'])
         product.category = request.form['category']
-        product.size_ml = int(request.form['size_ml'])
         product.image_url = request.form.get('image_url') or product.image_url
-
+        
+        # Mettre à jour les variantes
+        variant_ids = request.form.getlist('variant_id[]')
+        variant_sizes = request.form.getlist('variant_size[]')
+        variant_prices = request.form.getlist('variant_price[]')
+        variant_stocks = request.form.getlist('variant_stock[]')
+        
+        # Supprimer les anciennes variantes
+        ProductVariant.query.filter_by(product_id=product.id).delete()
+        
+        # Créer les nouvelles variantes
+        for size, price, stock in zip(variant_sizes, variant_prices, variant_stocks):
+            if size and price:
+                variant = ProductVariant(
+                    product_id=product.id,
+                    size_ml=int(size),
+                    price=float(price),
+                    stock=int(stock) if stock else 10
+                )
+                db.session.add(variant)
+        
         db.session.commit()
         flash(f'Produit {product.name} modifié avec succès!', 'success')
         return redirect(url_for('admin_products'))
 
     return render_template('admin/product_form.html', product=product)
 
-
 @app.route('/admin/products/delete/<int:id>')
 @login_required
 def admin_delete_product(id):
     product = Product.query.get_or_404(id)
-    db.session.delete(product)
+    db.session.delete(product)  # Les variantes seront supprimées automatiquement (cascade)
     db.session.commit()
-    flash(f'Produit {product.name} supprimé', 'info')
+    flash(f'Produit {product.name} supprimé', 'success')
     return redirect(url_for('admin_products'))
+
 
 @app.route('/admin/products/toggle/<int:id>')
 @login_required
@@ -339,14 +404,9 @@ def admin_update_order_status(id):
     flash('Statut mis à jour', 'success')
     return redirect(url_for('admin_orders'))
 
-# ========================================
-# INITIALISATION BASE DE DONNÉES
-# ========================================
-
 def init_db():
     with app.app_context():
         db.create_all()
-        print("✅ Tables créées")
         
         if not Admin.query.first():
             admin = Admin(
@@ -355,7 +415,6 @@ def init_db():
             )
             db.session.add(admin)
             db.session.commit()
-            print("✅ Admin créé")
         
         if Product.query.count() == 0:
             demo_products = [
@@ -365,18 +424,12 @@ def init_db():
             for product in demo_products:
                 db.session.add(product)
             db.session.commit()
-            print("✅ Produits créés")
 
 init_db()
 
 if __name__ == '__main__':
-    print("\n" + "="*50)
-    print("🚀 OPALINE PARFUMS - SERVEUR DÉMARRÉ!")
-    print("="*50)
     print("\nSite Public: http://localhost:5000")
     print("Admin Panel: http://localhost:5000/admin/login")
     print("\nUsername: admin")
     print("Password: admin123")
-    print("\n" + "="*50 + "\n")
-    
     app.run(debug=True, host='0.0.0.0', port=5000)

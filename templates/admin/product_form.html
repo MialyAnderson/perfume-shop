@@ -1,25 +1,58 @@
 {% extends "base.html" %}
 
-{% block title %}{% if product %}Modifier{% else %}Ajouter{% endif %} un produit{% endblock %}
+{% block title %}{% if product %}Modifier{% else %}Ajouter{% endif %} un Produit{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>
-            <i class="fas fa-{% if product %}edit{% else %}plus{% endif %}"></i>
-            {% if product %}Modifier{% else %}Ajouter{% endif %} un produit
-        </h2>
-        <a href="{{ url_for('admin_products') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Retour
-        </a>
-    </div>
+<style>
+    .variant-row {
+        display: flex;
+        gap: 15px;
+        align-items: end;
+        margin-bottom: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
     
-    <div class="card">
-        <div class="card-body">
+    .variant-row .form-group {
+        flex: 1;
+        margin-bottom: 0;
+    }
+    
+    .btn-remove-variant {
+        padding: 10px 15px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    
+    .btn-add-variant {
+        margin-top: 10px;
+    }
+</style>
+
+<section class="admin-section">
+    <div class="container">
+        <div class="page-header">
+            <h2 class="page-title">
+                <i class="fas fa-{% if product %}edit{% else %}plus{% endif %}"></i>
+                {% if product %}Modifier{% else %}Ajouter{% endif %} un Produit
+            </h2>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Retour
+            </a>
+        </div>
+        
+        <div class="form-card">
             <form method="POST">
+                <!-- Informations générales -->
+                <h5 class="mb-3"><i class="fas fa-info-circle me-2"></i>Informations Générales</h5>
+                
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Nom *</label>
+                        <label class="form-label">Nom du produit *</label>
                         <input type="text" class="form-control" name="name" value="{{ product.name if product else '' }}" required>
                     </div>
                     
@@ -35,28 +68,6 @@
                 </div>
                 
                 <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Prix ($) *</label>
-                        <input type="number" step="0.01" class="form-control" name="price" value="{{ product.price if product else '' }}" required>
-                    </div>
-                    
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Stock *</label>
-                        <input type="number" class="form-control" name="stock" value="{{ product.stock if product else '10' }}" required>
-                    </div>
-                    
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Taille (ml) *</label>
-                        <select class="form-select" name="size_ml" required>
-                            <option value="30" {% if product and product.size_ml == 30 %}selected{% endif %}>30ml</option>
-                            <option value="50" {% if product and product.size_ml == 50 %}selected{% elif not product %}selected{% endif %}>50ml</option>
-                            <option value="100" {% if product and product.size_ml == 100 %}selected{% endif %}>100ml</option>
-                            <option value="150" {% if product and product.size_ml == 150 %}selected{% endif %}>150ml</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Catégorie *</label>
                         <select class="form-select" name="category" required>
@@ -67,29 +78,119 @@
                     </div>
                     
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Lien de l’image (image.bb ou autre) *</label>
+                        <label class="form-label">Lien de l'image *</label>
                         <input type="url" class="form-control" name="image_url" 
                                value="{{ product.image_url if product else '' }}" 
                                placeholder="https://i.ibb.co/xxx/nomimage.jpg" required>
                         {% if product and product.image_url %}
-                        <div class="mt-2">
-                            <img src="{{ product.image_url }}" class="rounded" style="width: 100px; height: 100px; object-fit: cover;">
-                            <p class="small text-muted mb-0">Image actuelle</p>
-                        </div>
+                        <img src="{{ product.image_url }}" class="current-image mt-2" alt="Image actuelle">
                         {% endif %}
                     </div>
                 </div>
                 
-                <div class="d-flex gap-2">
+                <hr class="my-4">
+                
+                <!-- Variantes (Tailles et Prix) -->
+                <h5 class="mb-3"><i class="fas fa-layer-group me-2"></i>Tailles et Prix</h5>
+                
+                <div id="variants-container">
+                    {% if product and product.variants %}
+                        {% for variant in product.variants %}
+                        <div class="variant-row">
+                            <input type="hidden" name="variant_id[]" value="{{ variant.id }}">
+                            <div class="form-group">
+                                <label class="form-label">Taille (ml) *</label>
+                                <input type="number" class="form-control" name="variant_size[]" value="{{ variant.size_ml }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Prix ($) *</label>
+                                <input type="number" step="0.01" class="form-control" name="variant_price[]" value="{{ variant.price }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Stock *</label>
+                                <input type="number" class="form-control" name="variant_stock[]" value="{{ variant.stock }}" required>
+                            </div>
+                            <button type="button" class="btn-remove-variant" onclick="removeVariant(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Variante par défaut -->
+                        <div class="variant-row">
+                            <div class="form-group">
+                                <label class="form-label">Taille (ml) *</label>
+                                <input type="number" class="form-control" name="variant_size[]" value="3" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Prix ($) *</label>
+                                <input type="number" step="0.01" class="form-control" name="variant_price[]" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Stock *</label>
+                                <input type="number" class="form-control" name="variant_stock[]" value="10" required>
+                            </div>
+                            <button type="button" class="btn-remove-variant" onclick="removeVariant(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <button type="button" class="btn btn-secondary btn-add-variant" onclick="addVariant()">
+                    <i class="fas fa-plus me-2"></i>Ajouter une taille
+                </button>
+                
+                <hr class="my-4">
+                
+                <div class="d-flex gap-2 mt-4">
                     <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="fas fa-save"></i> {% if product %}Modifier{% else %}Ajouter{% endif %}
+                        <i class="fas fa-save me-2"></i>{% if product %}Modifier{% else %}Ajouter{% endif %}
                     </button>
                     <a href="{{ url_for('admin_products') }}" class="btn btn-outline-secondary btn-lg">
-                        <i class="fas fa-times"></i> Annuler
+                        <i class="fas fa-times me-2"></i>Annuler
                     </a>
                 </div>
             </form>
         </div>
     </div>
-</div>
+</section>
+
+<script>
+function addVariant() {
+    const container = document.getElementById('variants-container');
+    const newVariant = document.createElement('div');
+    newVariant.className = 'variant-row';
+    newVariant.innerHTML = `
+        <div class="form-group">
+            <label class="form-label">Taille (ml) *</label>
+            <input type="number" class="form-control" name="variant_size[]" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Prix ($) *</label>
+            <input type="number" step="0.01" class="form-control" name="variant_price[]" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Stock *</label>
+            <input type="number" class="form-control" name="variant_stock[]" value="10" required>
+        </div>
+        <button type="button" class="btn-remove-variant" onclick="removeVariant(this)">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    container.appendChild(newVariant);
+}
+
+function removeVariant(button) {
+    const variantRow = button.closest('.variant-row');
+    const container = document.getElementById('variants-container');
+    
+    // Empêcher de supprimer la dernière variante
+    if (container.children.length > 1) {
+        variantRow.remove();
+    } else {
+        alert('Vous devez avoir au moins une taille !');
+    }
+}
+</script>
 {% endblock %}

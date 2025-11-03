@@ -1,8 +1,3 @@
-# ========================================
-# FICHIER: utils.py
-# Fonctions utilitaires
-# ========================================
-
 from flask import session
 from werkzeug.utils import secure_filename
 import uuid
@@ -30,26 +25,28 @@ def get_cart():
 
 def get_cart_total():
     """Calcule le total du panier"""
-    from models import Product
+    from models import ProductVariant
     cart = get_cart()
     total = 0
     for item in cart:
-        product = Product.query.get(item['product_id'])
-        if product:
-            total += product.price * item['quantity']
+        variant = ProductVariant.query.get(item['variant_id'])
+        if variant:
+            total += variant.price * item['quantity']
     return total
 
 def get_cart_items():
     """Récupère les articles du panier avec détails"""
-    from models import Product
+    from models import Product, ProductVariant
     cart = get_cart()
     items = []
     for item in cart:
-        product = Product.query.get(item['product_id'])
-        if product:
+        variant = ProductVariant.query.get(item['variant_id'])
+        if variant:
+            product = Product.query.get(variant.product_id)
             items.append({
                 'product': product,
+                'variant': variant,
                 'quantity': item['quantity'],
-                'subtotal': product.price * item['quantity']
+                'subtotal': variant.price * item['quantity']
             })
     return items

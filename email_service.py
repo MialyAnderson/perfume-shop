@@ -1,14 +1,8 @@
-# ========================================
-# FICHIER: email_service.py
-# Service d'envoi d'emails
-# ========================================
-
 from flask_mail import Message
 
 def send_order_confirmation(mail, order):
     """Envoie un email de confirmation de commande"""
     try:
-        # HTML des produits
         products_html = ""
         for item in order.items:
             products_html += f"""
@@ -19,8 +13,6 @@ def send_order_confirmation(mail, order):
                 <td style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;"><strong>{item.subtotal:.2f}$</strong></td>
             </tr>
             """
-        
-        # Template email
         html_body = f"""
         <!DOCTYPE html>
         <html>
@@ -92,9 +84,9 @@ def send_order_confirmation(mail, order):
         )
         
         mail.send(msg)
-        print(f"✅ Email envoyé à {order.customer_email}")
+        print(f"Email envoyé à {order.customer_email}")
         return True
         
     except Exception as e:
-        print(f"❌ Erreur email: {e}")
+        print(f"Erreur email: {e}")
         return False

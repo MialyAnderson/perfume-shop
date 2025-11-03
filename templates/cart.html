@@ -88,10 +88,50 @@
         margin: 0;
     }
 
+    .quantity-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .quantity-btn {
+        width: 35px;
+        height: 35px;
+        border: 2px solid #e0e0e0;
+        background: #fff;
+        color: #333;
+        font-weight: 700;
+        font-size: 1.1rem;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+
+    .quantity-btn:hover {
+        background: var(--secondary-color);
+        border-color: var(--secondary-color);
+        color: #000;
+        transform: scale(1.1);
+    }
+
+    .quantity-btn:active {
+        transform: scale(0.95);
+    }
+
     .quantity-display {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         font-weight: 700;
         color: #000;
+        min-width: 40px;
+        text-align: center;
+        padding: 5px 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
     }
 
     .btn-remove {
@@ -100,7 +140,6 @@
         letter-spacing: 0.5px;
     }
 
-    /* Summary Card */
     .summary-card {
         background: #fff;
         border: none;
@@ -220,7 +259,6 @@
         margin: 0;
     }
 
-    /* Empty Cart */
     .empty-cart {
         text-align: center;
         padding: 100px 20px;
@@ -256,6 +294,11 @@
         .item-name {
             font-size: 1.1rem;
         }
+        .quantity-btn {
+            width: 32px;
+            height: 32px;
+            font-size: 1rem;
+        }
     }
 </style>
 
@@ -268,7 +311,6 @@
         
         {% if items %}
         <div class="row">
-            <!-- Items -->
             <div class="col-lg-8 mb-4">
                 {% for item in items %}
                 <div class="cart-item-card">
@@ -278,26 +320,46 @@
                                 <img src="{{ item.product.image_url }}" class="cart-item-image" alt="{{ item.product.name }}">
                             </div>
                             
+                            <!-- MODIFIÉ: Affichage avec variante -->
                             <div class="col-md-4 col-9 mb-3 mb-md-0">
                                 <h5 class="item-name">{{ item.product.name }}</h5>
                                 <p class="item-brand">{{ item.product.brand }}</p>
-                                <span class="item-spec">{{ item.product.size_ml }}ml</span>
+                                <span class="item-spec">{{ item.variant.size_ml }}ml</span>
                             </div>
                             
                             <div class="col-md-2 col-4 text-center mb-3 mb-md-0">
                                 <p class="price-label">Prix unitaire</p>
-                                <h5 class="price-value">${{ "%.2f"|format(item.product.price) }}</h5>
+                                <h5 class="price-value">${{ "%.2f"|format(item.variant.price) }}</h5>
                             </div>
                             
                             <div class="col-md-2 col-4 text-center mb-3 mb-md-0">
                                 <p class="price-label">Quantité</p>
-                                <div class="quantity-display">{{ item.quantity }}</div>
+                                <div class="quantity-controls">
+                                    <a href="{{ url_for('decrease_quantity', variant_id=item.variant.id) }}" class="quantity-btn" title="Diminuer">
+                                        <i class="fas fa-minus"></i>
+                                    </a>
+                                    <span class="quantity-display">{{ item.quantity }}</span>
+                                    <a href="{{ url_for('increase_quantity', variant_id=item.variant.id) }}" class="quantity-btn" title="Augmenter"
+                                       {% if item.quantity >= item.variant.stock %}style="opacity: 0.5; pointer-events: none; cursor: not-allowed;"{% endif %}>
+                                        <i class="fas fa-plus"></i>
+                                    </a>
+                                </div>
+                                <!-- Indicateur de stock -->
+                                <small class="text-muted d-block mt-1" style="font-size: 0.8rem;">
+                                    {% if item.variant.stock > 10 %}
+                                        <i class="fas fa-check-circle text-success"></i> En stock
+                                    {% elif item.variant.stock > 0 %}
+                                        <i class="fas fa-exclamation-triangle text-warning"></i> {{ item.variant.stock }} restant(s)
+                                    {% else %}
+                                        <i class="fas fa-times-circle text-danger"></i> Rupture
+                                    {% endif %}
+                                </small>
                             </div>
                             
                             <div class="col-md-2 col-4 text-center">
                                 <p class="price-label">Total</p>
                                 <h5 class="price-value">${{ "%.2f"|format(item.subtotal) }}</h5>
-                                <a href="{{ url_for('remove_from_cart', product_id=item.product.id) }}" class="btn btn-outline-danger btn-sm btn-remove mt-2">
+                                <a href="{{ url_for('remove_from_cart', variant_id=item.variant.id) }}" class="btn btn-outline-danger btn-sm btn-remove mt-2">
                                     <i class="fas fa-trash me-1"></i>Retirer
                                 </a>
                             </div>
@@ -307,7 +369,6 @@
                 {% endfor %}
             </div>
             
-            <!-- Summary -->
             <div class="col-lg-4">
                 <div class="summary-card card">
                     <div class="card-header">
@@ -352,7 +413,6 @@
         </div>
         
         {% else %}
-        <!-- Empty State -->
         <div class="empty-cart">
             <i class="fas fa-shopping-cart"></i>
             <h3>Votre panier est vide</h3>

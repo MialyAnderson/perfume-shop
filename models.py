@@ -1,8 +1,3 @@
-# ========================================
-# FICHIER: models.py
-# Modèles de base de données
-# ========================================
-
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
@@ -15,18 +10,54 @@ class Admin(UserMixin, db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
 
+
 class Product(db.Model):
-    """Produit (parfum)"""
+    """Produit (parfum) - Sans prix ni stock car géré par variantes"""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     brand = db.Column(db.String(50))
     description = db.Column(db.Text)
-    price = db.Column(db.Float, nullable=False)
-    stock = db.Column(db.Integer, default=10)
     category = db.Column(db.String(50))
-    size_ml = db.Column(db.Integer)
     image_url = db.Column(db.String(300))
     is_active = db.Column(db.Boolean, default=True)
+    
+    # Relation avec les variantes
+    variants = db.relationship('ProductVariant', backref='product', lazy=True, cascade='all, delete-orphan')
+    
+    @property
+    def min_price(self):
+        """Prix minimum parmi toutes les variantes"""
+        if self.variants:
+            return min(v.price for v in self.variants)
+        return 0
+    
+    @property
+    def max_price(self):
+        """Prix maximum parmi toutes les variantes"""
+        if self.variants:
+            return max(v.price for v in self.variants)
+        return 0
+    
+    @property
+    def total_stock(self):
+        """Stock total de toutes les variantes"""
+        if self.variants:
+            return sum(v.stock for v in self.variants)
+        return 0
+
+
+class ProductVariant(db.Model):
+    """Variante de produit (taille spécifique avec son prix et stock)"""
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    size_ml = db.Column(db.Integer, nullable=False)  # 3, 5, 10, 30, 50, 100, etc.
+    price = db.Column(db.Float, nullable=False)
+    stock = db.Column(db.Integer, default=10)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    def __repr__(self):
+        return f'<ProductVariant {self.size_ml}ml - ${self.price}>'
+
 
 class Order(db.Model):
     """Commande client"""
@@ -43,6 +74,7 @@ class Order(db.Model):
     status = db.Column(db.String(20), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+
 class Review(db.Model):
     """Avis client"""
     id = db.Column(db.Integer, primary_key=True)
@@ -54,13 +86,16 @@ class Review(db.Model):
     
     product = db.relationship('Product', backref='reviews')
 
+
 class OrderItem(db.Model):
-    """Article d'une commande"""
+    """Article d'une commande - LIÉ À UNE VARIANTE"""
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    variant_id = db.Column(db.Integer, db.ForeignKey('product_variant.id'), nullable=False)  # NOUVEAU
     quantity = db.Column(db.Integer, nullable=False)
     subtotal = db.Column(db.Float, nullable=False)
 
     order = db.relationship('Order', backref=db.backref('items', lazy=True))
     product = db.relationship('Product')
+    variant = db.relationship('ProductVariant')  # NOUVEAU
