@@ -6,8 +6,8 @@ class Config:
     UPLOAD_FOLDER = 'static/uploads'
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB max
 
-    PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', 'ARJwJ2EHwHtr_M5gw4myrAjEQ2x_WX8kGVhLiKX2sTr0SWTS-s9fsiXmgMvpNXfjl8i5epJ5Php8QdO-')
-    PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'live')
+    PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', 'AfYL5NT82add83YEaYavbcSWW-KxYXH2PU3aThFXZsu8ZcvA-biUwdy8Ra1qyaxvO1YQaqXmpEiqbp5q')
+    PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'sandbox')
 
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 587
