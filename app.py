@@ -76,40 +76,71 @@ def view_cart():
 
 @app.route('/add-to-cart/<int:variant_id>')
 def add_to_cart(variant_id):
-    """Ajoute une variante au panier"""
     from models import ProductVariant, Product
-    
-    variant = ProductVariant.query.get_or_404(variant_id)
-    product = Product.query.get(variant.product_id)
-    
-    # Vérifier le stock
-    if variant.stock <= 0:
-        flash(f'{product.name} ({variant.size_ml}ml) est en rupture de stock', 'warning')
-        return redirect(request.referrer or url_for('catalog'))
-    
+    from utils import get_cart
+
+    quantity = int(request.args.get('quantity', 1))
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     cart = get_cart()
-    
-    # Vérifier si la variante est déjà dans le panier
+
+    variant = db.session.get(ProductVariant, variant_id)
+    if not variant:
+        if is_ajax:
+            return {"error": "Produit introuvable"}, 404
+        flash("Produit introuvable", "danger")
+        return redirect(request.referrer or url_for('catalog'))
+
+    product = db.session.get(Product, variant.product_id)
+    if not product:
+        if is_ajax:
+            return {"error": "Produit associé introuvable"}, 404
+        flash("Produit associé introuvable", "danger")
+        return redirect(request.referrer or url_for('catalog'))
+
+    # Vérifie le stock
+    if variant.stock <= 0:
+        if is_ajax:
+            return {"error": "Rupture de stock"}, 400
+        flash(f"{product.name} ({variant.size_ml}ml) est en rupture de stock", "warning")
+        return redirect(request.referrer or url_for('catalog'))
+
+    # Ajout au panier
     for item in cart:
         if item['variant_id'] == variant_id:
-            if item['quantity'] < variant.stock:
-                item['quantity'] += 1
-                session.modified = True
-                flash(f'{product.name} ({variant.size_ml}ml) ajouté au panier!', 'success')
-            else:
-                flash(f'Stock insuffisant pour {product.name} ({variant.size_ml}ml)', 'warning')
-            return redirect(request.referrer or url_for('catalog'))
-    
-    # Ajouter la variante pour la première fois
-    cart.append({'variant_id': variant_id, 'quantity': 1})
-    session.modified = True
-    flash(f'{product.name} ({variant.size_ml}ml) ajouté au panier!', 'success')
+            new_qty = item['quantity'] + quantity
+            if new_qty > variant.stock:
+                if is_ajax:
+                    return {"error": "Stock insuffisant"}, 400
+                flash(f"Stock insuffisant pour {product.name} ({variant.size_ml}ml)", "warning")
+                return redirect(request.referrer or url_for('catalog'))
+            item['quantity'] = new_qty
+            session.modified = True
+            break
+    else:
+        cart.append({'variant_id': variant_id, 'quantity': quantity})
+        session.modified = True
+
+    # ✅ Si appel AJAX → renvoyer une réponse JSON légère
+    if is_ajax:
+        return {"message": f"{product.name} ({variant.size_ml}ml) ajouté au panier", "success": True}, 200
+
+    # Sinon, redirection normale
+    flash(f"{product.name} ({variant.size_ml}ml) ajouté au panier!", "success")
     return redirect(request.referrer or url_for('catalog'))
 
-@app.route('/remove-from-cart/<int:product_id>')
-def remove_from_cart(product_id):
+@app.route("/clear-cart")
+def clear_cart():
+    session.pop('cart', None)
+    flash("Panier vidé.", "info")
+    return redirect(url_for('view_cart'))
+
+
+
+@app.route('/remove-from-cart/<int:variant_id>')
+def remove_from_cart(variant_id):
     cart = get_cart()
-    cart[:] = [item for item in cart if item['product_id'] != product_id]
+    cart[:] = [item for item in cart if item['variant_id'] != variant_id]
     session.modified = True
     flash('Produit retiré du panier', 'info')
     return redirect(url_for('view_cart'))

@@ -116,7 +116,13 @@
     }
     
     .size-option {
-        position: relative;
+        background: #fff;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 15px 20px;
+        text-align: center;
+        min-width: 130px;
+        transition: all 0.3s ease;
     }
     
     .size-option input[type="radio"] {
@@ -370,6 +376,85 @@
         color: var(--secondary-color);
     }
 
+    .quantity-selector {
+    margin-top: 10px;
+    margin-bottom: 25px;
+}
+
+.quantity-selector label {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #000;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.quantity-input-group {
+    display: flex;
+    align-items: center;
+    max-width: 160px;
+}
+
+.quantity-input-group button {
+    width: 40px;
+    height: 40px;
+    font-size: 1.3rem;
+    font-weight: bold;
+    border: 2px solid #e0e0e0;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.quantity-input-group button:hover {
+    background: var(--secondary-color);
+    color: #fff;
+}
+
+.quantity-input-group input {
+    width: 60px;
+    text-align: center;
+    border: 2px solid #e0e0e0;
+    height: 40px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.quantity-controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 10px;
+    }
+
+    .quantity-controls button {
+        border: 1px solid #ccc;
+        background: #fff;
+        width: 35px;
+        height: 35px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .quantity-controls button:hover {
+        background: var(--secondary-color);
+        color: #fff;
+    }
+
+    .quantity-controls span {
+        width: 40px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .size-selector .btn-add-cart {
+    margin-top: 50px;
+    }
+
+
     @media (max-width: 768px) {
         .product-info {
             padding: 30px 20px;
@@ -396,53 +481,31 @@
                     <img src="{{ product.image_url }}" alt="{{ product.name }}">
                 </div>
             </div>
-            
-            <!-- Info -->
+
+            <!-- Infos -->
             <div class="col-lg-6">
                 <div class="product-info">
                     <h1>{{ product.name }}</h1>
                     <span class="product-brand">{{ product.brand }}</span>
-                    
-                    {% if product.reviews %}
-                    <div class="rating-display">
-                        <div class="stars">
-                            {% set avg_rating = (product.reviews|sum(attribute='rating')) / (product.reviews|length) %}
-                            {% for i in range(5) %}
-                                {% if i < avg_rating|round %}
-                                    <i class="fas fa-star"></i>
-                                {% else %}
-                                    <i class="far fa-star"></i>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        <span class="rating-count">({{ product.reviews|length }} avis)</span>
-                    </div>
-                    {% endif %}
-                    
+
                     <p class="product-description">{{ product.description }}</p>
-                    
-                    <div class="product-specs">
+
+                    <div class="product-specs mb-3">
                         <div class="spec-badge">
                             <i class="fas fa-tag"></i>
                             {{ product.category }}
                         </div>
                     </div>
-                    
-                    <!-- SÉLECTEUR DE TAILLE -->
+
+                    <!-- Sélecteur tailles + quantités -->
                     {% if product.variants %}
                     <div class="size-selector">
-                        <h6><i class="fas fa-flask me-2"></i>Choisissez votre taille</h6>
-                        <div class="size-options">
-                            {% for variant in product.variants|sort(attribute='size_ml') %}
-                            <div class="size-option {% if variant.stock <= 0 %}out-of-stock{% endif %}">
-                                <input type="radio" 
-                                       name="variant" 
-                                       id="variant-{{ variant.id }}" 
-                                       value="{{ variant.id }}"
-                                       {% if variant.stock <= 0 %}disabled{% endif %}
-                                       {% if loop.first and variant.stock > 0 %}checked{% endif %}
-                                       onchange="updateSelectedVariant({{ variant.id }}, {{ variant.price }}, {{ variant.stock }}, {{ variant.size_ml }})">
-                                <label for="variant-{{ variant.id }}" class="size-label">
+                        <h6><i class="fas fa-flask me-2"></i>Choisissez vos tailles et quantités</h6>
+
+                        <form id="add-to-cart-form">
+                            <div class="size-options">
+                                {% for variant in product.variants|sort(attribute='size_ml') %}
+                                <div class="size-option {% if variant.stock <= 0 %}out-of-stock{% endif %}" data-variant-id="{{ variant.id }}">
                                     <span class="size-ml">{{ variant.size_ml }}ml</span>
                                     <span class="size-price">${{ "%.2f"|format(variant.price) }}</span>
                                     {% if variant.stock > 0 %}
@@ -450,44 +513,32 @@
                                     {% else %}
                                         <span class="size-stock text-danger">Rupture</span>
                                     {% endif %}
-                                </label>
+
+                                    {% if variant.stock > 0 %}
+                                    <div class="quantity-controls mt-2">
+                                        <button type="button" class="qty-btn" onclick="changeQuantity({{ variant.id }}, -1)">−</button>
+                                        <span id="qty-{{ variant.id }}" class="qty-display">0</span>
+                                        <button type="button" class="qty-btn" onclick="changeQuantity({{ variant.id }}, 1)">+</button>
+                                    </div>
+
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
-                        </div>
+
+                            <button type="button" class="btn btn-primary btn-add-cart" onclick="addAllToCart()">
+                                <i class="fas fa-shopping-cart"></i> Ajouter au Panier
+                            </button>
+                        </form>
                     </div>
-                    
-                    <!-- Prix sélectionné -->
-                    <div class="price-section">
-                        <h2 class="product-price" id="selected-price">
-                            {% set first_available = product.variants|selectattr('stock', 'gt', 0)|first %}
-                            {% if first_available %}
-                                ${{ "%.2f"|format(first_available.price) }}
-                            {% else %}
-                                ${{ "%.2f"|format(product.variants[0].price) }}
-                            {% endif %}
-                        </h2>
-                        <span class="stock-badge in-stock" id="stock-status">
-                            {% if first_available %}
-                                <i class="fas fa-check-circle me-1"></i>
-                                En stock ({{ first_available.stock }} disponibles)
-                            {% else %}
-                                <i class="fas fa-times-circle me-1"></i>
-                                Rupture de stock
-                            {% endif %}
-                        </span>
-                    </div>
-                    
-                    <button type="button" class="btn btn-primary btn-add-cart" id="add-to-cart-btn" onclick="addToCart()">
-                        <i class="fas fa-shopping-cart"></i>
-                        Ajouter au Panier
-                    </button>
                     {% else %}
-                    <div class="alert alert-warning">
+                    <div class="alert alert-warning mt-3">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         Aucune taille disponible pour ce produit
                     </div>
                     {% endif %}
-                    
+
+                    <!-- Sécurité -->
                     <div class="security-badges">
                         <div class="security-item">
                             <i class="fas fa-shield-alt"></i>
@@ -504,123 +555,141 @@
                     </div>
                 </div>
             </div>
-        </div>
-        
         <!-- Reviews Section -->
-        <div class="reviews-section">
-            <h3><i class="fas fa-comments me-3"></i>Avis Clients</h3>
+            <div class="reviews-section">
+                <h3><i class="fas fa-comments me-3"></i>Avis Clients</h3>
 
-            <div class="review-form">
-                <h5>Donnez votre avis sur ce produit</h5>
-                <form method="POST" action="{{ url_for('add_review', id=product.id) }}">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Votre nom (optionnel)</label>
-                            <input type="text" class="form-control" name="author_name" placeholder="Anonyme">
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Note *</label>
-                            <div class="star-rating">
-                                <input type="radio" name="rating" value="5" id="star5" required>
-                                <label for="star5"><i class="fas fa-star"></i></label>
-                                
-                                <input type="radio" name="rating" value="4" id="star4">
-                                <label for="star4"><i class="fas fa-star"></i></label>
-                                
-                                <input type="radio" name="rating" value="3" id="star3">
-                                <label for="star3"><i class="fas fa-star"></i></label>
-                                
-                                <input type="radio" name="rating" value="2" id="star2">
-                                <label for="star2"><i class="fas fa-star"></i></label>
-                                
-                                <input type="radio" name="rating" value="1" id="star1">
-                                <label for="star1"><i class="fas fa-star"></i></label>
+                <div class="review-form">
+                    <h5>Donnez votre avis sur ce produit</h5>
+                    <form method="POST" action="{{ url_for('add_review', id=product.id) }}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Votre nom (optionnel)</label>
+                                <input type="text" class="form-control" name="author_name" placeholder="Anonyme">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Note *</label>
+                                <div class="star-rating">
+                                    <input type="radio" name="rating" value="5" id="star5" required>
+                                    <label for="star5"><i class="fas fa-star"></i></label>
+                                    
+                                    <input type="radio" name="rating" value="4" id="star4">
+                                    <label for="star4"><i class="fas fa-star"></i></label>
+                                    
+                                    <input type="radio" name="rating" value="3" id="star3">
+                                    <label for="star3"><i class="fas fa-star"></i></label>
+                                    
+                                    <input type="radio" name="rating" value="2" id="star2">
+                                    <label for="star2"><i class="fas fa-star"></i></label>
+                                    
+                                    <input type="radio" name="rating" value="1" id="star1">
+                                    <label for="star1"><i class="fas fa-star"></i></label>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Votre commentaire *</label>
-                        <textarea class="form-control" name="comment" rows="4" required placeholder="Partagez votre expérience avec ce parfum..."></textarea>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-paper-plane me-2"></i>Publier mon Avis
-                    </button>
-                </form>
-            </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Votre commentaire *</label>
+                            <textarea class="form-control" name="comment" rows="4" required placeholder="Partagez votre expérience avec ce parfum..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Publier mon Avis
+                        </button>
+                    </form>
+                </div>
 
-            {% if product.reviews %}
-                {% for review in product.reviews|sort(attribute='created_at', reverse=true) %}
-                <div class="review-card">
-                    <div class="review-header">
-                        <div>
-                            <h6 class="reviewer-name">{{ review.author_name }}</h6>
-                            <small class="review-date">{{ review.created_at.strftime('%d/%m/%Y') }}</small>
+                {% if product.reviews %}
+                    {% for review in product.reviews|sort(attribute='created_at', reverse=true) %}
+                    <div class="review-card">
+                        <div class="review-header">
+                            <div>
+                                <h6 class="reviewer-name">{{ review.author_name }}</h6>
+                                <small class="review-date">{{ review.created_at.strftime('%d/%m/%Y') }}</small>
+                            </div>
+                            <div class="review-stars">
+                                {% for i in range(review.rating) %}
+                                    <i class="fas fa-star"></i>
+                                {% endfor %}
+                                {% for i in range(5 - review.rating) %}
+                                    <i class="far fa-star"></i>
+                                {% endfor %}
+                            </div>
                         </div>
-                        <div class="review-stars">
-                            {% for i in range(review.rating) %}
-                                <i class="fas fa-star"></i>
-                            {% endfor %}
-                            {% for i in range(5 - review.rating) %}
-                                <i class="far fa-star"></i>
-                            {% endfor %}
-                        </div>
+                        <p class="review-comment">{{ review.comment }}</p>
                     </div>
-                    <p class="review-comment">{{ review.comment }}</p>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="empty-reviews">
-                    <i class="fas fa-comments"></i>
-                    <h4>Aucun avis pour le moment</h4>
-                    <p>Soyez le premier à partager votre expérience !</p>
-                </div>
-            {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-reviews">
+                        <i class="fas fa-comments"></i>
+                        <h4>Aucun avis pour le moment</h4>
+                        <p>Soyez le premier à partager votre expérience !</p>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </section>
 
+
 <script>
-let selectedVariantId = null;
+let quantities = {}; // { variant_id: quantité }
 
-{% if product.variants and product.variants|length > 0 %}
-    {% for variant in product.variants %}
-        {% if loop.first %}
-            selectedVariantId = {{ variant.id }};
-        {% endif %}
-    {% endfor %}
-{% endif %}
+function changeQuantity(variantId, delta) {
+    const qtyElement = document.getElementById(`qty-${variantId}`);
+    const stockElement = document.querySelector(`[data-variant-id="${variantId}"] .size-stock`);
+    let stock = 10; // valeur par défaut au cas où
 
-function updateSelectedVariant(variantId, price, stock, sizeML) {
-    selectedVariantId = variantId;
-    document.getElementById('selected-price').textContent = '$' + price.toFixed(2);
-    
-    const stockStatus = document.getElementById('stock-status');
-    const addBtn = document.getElementById('add-to-cart-btn');
-    
-    if (stock > 0) {
-        stockStatus.innerHTML = '<i class="fas fa-check-circle me-1"></i>En stock (' + stock + ' disponibles)';
-        stockStatus.className = 'stock-badge in-stock';
-        addBtn.disabled = false;
-        addBtn.innerHTML = '<i class="fas fa-shopping-cart"></i> Ajouter au Panier';
-        addBtn.className = 'btn btn-primary btn-add-cart';
-    } else {
-        stockStatus.innerHTML = '<i class="fas fa-times-circle me-1"></i>Rupture de stock';
-        stockStatus.className = 'stock-badge out-of-stock';
-        addBtn.disabled = true;
-        addBtn.innerHTML = '<i class="fas fa-ban"></i> Produit Indisponible';
-        addBtn.className = 'btn btn-secondary btn-add-cart';
+    // Récupère le stock depuis le texte (ex: "Stock: 10")
+    if (stockElement && stockElement.textContent.includes('Stock:')) {
+        stock = parseInt(stockElement.textContent.replace(/[^0-9]/g, '')) || 10;
     }
+
+    if (!quantities[variantId]) quantities[variantId] = 0;
+
+    let newQty = quantities[variantId] + delta;
+
+    // 🚫 Empêche d'aller en dessous de 0
+    if (newQty < 0) newQty = 0;
+
+    // 🚫 Empêche de dépasser le stock
+    if (newQty > stock) {
+        newQty = stock;
+    }
+
+    quantities[variantId] = newQty;
+    qtyElement.textContent = newQty;
 }
 
-function addToCart() {
-    if (selectedVariantId) {
-        window.location.href = "{{ url_for('add_to_cart', variant_id=0) }}".replace('/0', '/' + selectedVariantId);
-    } else {
-        alert('Veuillez sélectionner une taille');
+async function addAllToCart() {
+    let hasSelected = false;
+    let requests = [];
+
+    for (const [variantId, qty] of Object.entries(quantities)) {
+        if (qty > 0) {
+            hasSelected = true;
+            const url = `/add-to-cart/${variantId}?quantity=${qty}`;
+            requests.push(fetch(url));
+        }
+    }
+
+    if (!hasSelected) {
+        alert("Veuillez choisir au moins une quantité.");
+        return;
+    }
+
+    try {
+        await Promise.all(requests);
+        window.location.href = "/cart";
+    } catch (error) {
+        console.error("Erreur ajout panier :", error);
+        alert("Une erreur est survenue lors de l'ajout au panier.");
     }
 }
 </script>
+
+
+
+
 {% endblock %}
