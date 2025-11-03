@@ -5,6 +5,7 @@ from flask_mail import Mail
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
+from flask_session import Session  # ✅ AJOUTE CECI
 from config import Config, ALLOWED_EXTENSIONS
 from models import db, Admin, Product, Order, OrderItem, Review, ProductVariant
 from utils import get_cart, get_cart_total, get_cart_items, save_uploaded_file
@@ -13,6 +14,13 @@ from email_service import send_order_confirmation
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# ✅ CONFIGURATION SÉCURISÉE POUR RENDER
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "ma_cle_locale_secrete")
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = False
+Session(app)  # initialise la session côté serveur
+
+# ✅ Crée le dossier d’upload s’il n’existe pas
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
@@ -23,6 +31,7 @@ mail = Mail(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'admin_login'
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -82,7 +91,11 @@ def add_to_cart(variant_id):
     quantity = int(request.args.get('quantity', 1))
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
+    # 🔒 Récupération du panier (et validation de sa structure)
     cart = get_cart()
+    if not isinstance(cart, list):
+        cart = []
+        session['cart'] = cart
 
     variant = db.session.get(ProductVariant, variant_id)
     if not variant:
@@ -98,15 +111,18 @@ def add_to_cart(variant_id):
         flash("Produit associé introuvable", "danger")
         return redirect(request.referrer or url_for('catalog'))
 
-    # Vérifie le stock
+    # ⚙️ Vérifie le stock
     if variant.stock <= 0:
         if is_ajax:
             return {"error": "Rupture de stock"}, 400
         flash(f"{product.name} ({variant.size_ml}ml) est en rupture de stock", "warning")
         return redirect(request.referrer or url_for('catalog'))
 
-    # Ajout au panier
+    # 🧠 Vérifie que chaque item du panier contient bien les bonnes clés
     for item in cart:
+        if not isinstance(item, dict) or 'variant_id' not in item or 'quantity' not in item:
+            continue  # Ignore toute donnée corrompue
+
         if item['variant_id'] == variant_id:
             new_qty = item['quantity'] + quantity
             if new_qty > variant.stock:
@@ -118,16 +134,19 @@ def add_to_cart(variant_id):
             session.modified = True
             break
     else:
+        # 🛒 Ajout propre si l'article n'existe pas encore
         cart.append({'variant_id': variant_id, 'quantity': quantity})
+        session['cart'] = cart
         session.modified = True
 
-    # ✅ Si appel AJAX → renvoyer une réponse JSON légère
+    # ✅ Réponse AJAX légère si c’est un ajout via fetch()
     if is_ajax:
         return {"message": f"{product.name} ({variant.size_ml}ml) ajouté au panier", "success": True}, 200
 
-    # Sinon, redirection normale
+    # ✅ Redirection normale sinon
     flash(f"{product.name} ({variant.size_ml}ml) ajouté au panier!", "success")
     return redirect(request.referrer or url_for('catalog'))
+
 
 @app.route("/clear-cart")
 def clear_cart():
