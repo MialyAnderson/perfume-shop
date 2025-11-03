@@ -632,45 +632,67 @@
     </div>
 </section>
 
-
 <script>
 let quantities = {}; // { variant_id: quantité }
 
-function changeQuantity(variantId, delta) {
-    const qtyElement = document.getElementById(`qty-${variantId}`);
-    const stockElement = document.querySelector(`[data-variant-id="${variantId}"] .size-stock`);
-    let stock = 10; // valeur par défaut au cas où
+// Récupère le stock de la variante depuis le DOM
+function getStock(variantId) {
+    // On cible le bloc de la variante (tu l'as déjà) : data-variant-id="{% raw %}{{ variant.id }}{% endraw %}"
+    const holder = document.querySelector(`[data-variant-id="${variantId}"]`);
+    if (!holder) return Infinity;
 
-    // Récupère le stock depuis le texte (ex: "Stock: 10")
-    if (stockElement && stockElement.textContent.includes('Stock:')) {
-        stock = parseInt(stockElement.textContent.replace(/[^0-9]/g, '')) || 10;
+    // 1) Si jamais tu ajoutes data-stock="{% raw %}{{ variant.stock }}{% endraw %}" dans le HTML,
+    // on le lit en priorité (plus fiable, pas besoin de parser du texte)
+    if (holder.dataset.stock) {
+        const n = parseInt(holder.dataset.stock, 10);
+        if (!isNaN(n)) return n;
     }
 
+    // 2) Sinon, on lit le texte "Stock: 10"
+    const stockSpan = holder.querySelector('.size-stock');
+    if (!stockSpan) return Infinity;
+    const m = stockSpan.textContent.match(/\d+/);
+    return m ? parseInt(m[0], 10) : Infinity;
+}
+
+function changeQuantity(variantId, delta) {
+    const qtyEl = document.getElementById(`qty-${variantId}`);
     if (!quantities[variantId]) quantities[variantId] = 0;
 
+    const stock = getStock(variantId);
     let newQty = quantities[variantId] + delta;
 
-    // 🚫 Empêche d'aller en dessous de 0
+    // borne haute/basse
     if (newQty < 0) newQty = 0;
-
-    // 🚫 Empêche de dépasser le stock
     if (newQty > stock) {
         newQty = stock;
+        if (stock !== Infinity) {
+            // petit retour visuel optionnel
+            qtyEl.classList.add('text-warning');
+            setTimeout(() => qtyEl.classList.remove('text-warning'), 400);
+        }
     }
 
     quantities[variantId] = newQty;
-    qtyElement.textContent = newQty;
+    qtyEl.textContent = newQty;
 }
 
 async function addAllToCart() {
     let hasSelected = false;
-    let requests = [];
 
-    for (const [variantId, qty] of Object.entries(quantities)) {
+    for (const [variantIdStr, qtyVal] of Object.entries(quantities)) {
+        const variantId = parseInt(variantIdStr, 10);
+        const stock = getStock(variantId);
+        const qty = Math.min(qtyVal, stock); // sécurité côté front
+
         if (qty > 0) {
             hasSelected = true;
             const url = `/add-to-cart/${variantId}?quantity=${qty}`;
-            requests.push(fetch(url));
+            // On évite que fetch suive la redirection 302 pour ne pas perturber la séquence
+            await fetch(url, {
+                redirect: 'manual',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
         }
     }
 
@@ -679,13 +701,8 @@ async function addAllToCart() {
         return;
     }
 
-    try {
-        await Promise.all(requests);
-        window.location.href = "/cart";
-    } catch (error) {
-        console.error("Erreur ajout panier :", error);
-        alert("Une erreur est survenue lors de l'ajout au panier.");
-    }
+    // Quand tout est terminé, on va au panier
+    window.location.href = "/cart";
 }
 </script>
 
