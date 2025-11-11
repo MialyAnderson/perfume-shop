@@ -9,7 +9,6 @@ class Config:
     PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', 'AfYL5NT82add83YEaYavbcSWW-KxYXH2PU3aThFXZsu8ZcvA-biUwdy8Ra1qyaxvO1YQaqXmpEiqbp5q')
     PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'sandbox')
 
-    # ⚠️ Configuration Gmail (ancienne, gardée pour compatibilité)
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 587
     MAIL_USE_TLS = True
@@ -18,7 +17,6 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'uznuwxgbaspghwgu')
     MAIL_DEFAULT_SENDER = 'OPALINE PARFUMS <opaline.parfums@gmail.com>'
 
-    # ✅ Configuration Resend (CORRIGÉ)
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY', 're_bqZgxv8L_9j1JvSJKzYRUfh3S7zFPMAJv')
 
     @staticmethod
@@ -26,17 +24,19 @@ class Config:
         database_url = os.environ.get('DATABASE_URL')
         if database_url and database_url.startswith('postgres://'):
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        
-        # ✅ SSL requis pour Render
-        if database_url and 'postgresql://' in database_url:
-            if '?' in database_url:
-                database_url += '&sslmode=require'
-            else:
-                database_url += '?sslmode=require'
-        
         return database_url or 'sqlite:///perfume_shop.db'
     
     SQLALCHEMY_DATABASE_URI = get_database_uri.__func__()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # ✅ CONFIGURATION SSL COMPLÈTE POUR POSTGRESQL
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'connect_args': {
+            'sslmode': 'require',
+            'connect_timeout': 10,
+        }
+    }
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
