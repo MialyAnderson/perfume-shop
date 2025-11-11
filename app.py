@@ -45,7 +45,7 @@ with app.app_context():
     # Recréer toutes les tables
     db.create_all()
     print("✅ Nouvelles tables créées avec product_variant")
-    
+
 migrate = Migrate(app, db)
 mail = Mail(app)
 
@@ -285,14 +285,17 @@ def payment_success():
     db.session.add(order)
     db.session.commit()
 
+    # ✅ CORRECTION : Ajouter variant_id
     for item in get_cart_items():
         order_item = OrderItem(
             order_id=order.id,
             product_id=item['product'].id,
+            variant_id=item['variant'].id,  # ⭐ AJOUTÉ
             quantity=item['quantity'],
             subtotal=item['subtotal']
         )
         db.session.add(order_item)
+    
     db.session.commit()
 
     send_order_confirmation(mail, order)
