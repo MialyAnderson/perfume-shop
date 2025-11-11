@@ -397,32 +397,55 @@ def admin_edit_product(id):
         product.category = request.form['category']
         product.image_url = request.form.get('image_url') or product.image_url
         
-        # Mettre à jour les variantes
-        variant_ids = request.form.getlist('variant_id[]')
+        # Récupérer les données du formulaire
         variant_sizes = request.form.getlist('variant_size[]')
         variant_prices = request.form.getlist('variant_price[]')
         variant_stocks = request.form.getlist('variant_stock[]')
         
-        # Supprimer les anciennes variantes
-        ProductVariant.query.filter_by(product_id=product.id).delete()
+        # ✅ NOUVEAU : Ne supprimer QUE les variantes non utilisées dans des commandes
+        existing_variants = ProductVariant.query.filter_by(product_id=product.id).all()
         
-        # Créer les nouvelles variantes
+        for variant in existing_variants:
+            # Vérifier si la variante est dans une commande
+            is_in_order = db.session.query(OrderItem).filter_by(variant_id=variant.id).first()
+            
+            if not is_in_order:
+                # Pas dans une commande, on peut supprimer
+                db.session.delete(variant)
+            else:
+                # Dans une commande, on la désactive juste
+                variant.is_active = False
+        
+        # Ajouter/mettre à jour les variantes
         for size, price, stock in zip(variant_sizes, variant_prices, variant_stocks):
             if size and price:
-                variant = ProductVariant(
+                # Chercher si une variante existe déjà pour cette taille
+                existing = ProductVariant.query.filter_by(
                     product_id=product.id,
-                    size_ml=int(size),
-                    price=float(price),
-                    stock=int(stock) if stock else 10
-                )
-                db.session.add(variant)
+                    size_ml=int(size)
+                ).first()
+                
+                if existing:
+                    # Mettre à jour
+                    existing.price = float(price)
+                    existing.stock = int(stock) if stock else 10
+                    existing.is_active = True
+                else:
+                    # Créer nouvelle variante
+                    variant = ProductVariant(
+                        product_id=product.id,
+                        size_ml=int(size),
+                        price=float(price),
+                        stock=int(stock) if stock else 10,
+                        is_active=True
+                    )
+                    db.session.add(variant)
         
         db.session.commit()
         flash(f'Produit {product.name} modifié avec succès!', 'success')
         return redirect(url_for('admin_products'))
 
     return render_template('admin/product_form.html', product=product)
-
 @app.route('/admin/products/delete/<int:id>')
 @login_required
 def admin_delete_product(id):
