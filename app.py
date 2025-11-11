@@ -459,6 +459,7 @@ def init_db():
     with app.app_context():
         db.create_all()
         
+        # Créer un compte admin par défaut
         if not Admin.query.first():
             admin = Admin(
                 username='admin',
@@ -466,15 +467,7 @@ def init_db():
             )
             db.session.add(admin)
             db.session.commit()
-        
-        if Product.query.count() == 0:
-            demo_products = [
-                Product(name="Noir Extrême", brand="Tom Ford", description="Parfum oriental boisé intense", price=145.00, stock=15, category="Homme", size_ml=100, image_url="https://images.unsplash.com/photo-1541643600914-78b084683601?w=500"),
-                Product(name="La Vie Est Belle", brand="Lancôme", description="Essence du bonheur", price=98.00, stock=20, category="Femme", size_ml=50, image_url="https://images.unsplash.com/photo-1588405748880-12d1d2a59cca?w=500"),
-            ]
-            for product in demo_products:
-                db.session.add(product)
-            db.session.commit()
+            print("✅ Compte admin créé (username: admin, password: admin123)")
 
 init_db()
 
