@@ -7,9 +7,9 @@ from datetime import datetime
 import os
 from flask_session import Session  # ✅ AJOUTE CECI
 from config import Config, ALLOWED_EXTENSIONS
-from models import db, Admin, Product, Order, OrderItem, Review, ProductVariant
+from models import db, Admin, Product, Order, OrderItem, Review, ProductVariant, ContactMessage
 from utils import get_cart, get_cart_total, get_cart_items, save_uploaded_file
-from email_service import send_order_confirmation
+from email_service import send_order_confirmation_resend
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -37,6 +37,14 @@ login_manager.login_view = 'admin_login'
 @login_manager.user_loader
 def load_user(user_id):
     return Admin.query.get(int(user_id))
+
+@app.context_processor
+def utility_processor():
+    """Fonctions utilitaires disponibles dans tous les templates"""
+    def get_unread_messages_count():
+        from models import ContactMessage
+        return ContactMessage.query.filter_by(is_read=False).count()
+    return dict(get_unread_messages_count=get_unread_messages_count)
 
 @app.route('/')
 def index():
@@ -278,7 +286,7 @@ def payment_success():
     
     db.session.commit()
 
-    send_order_confirmation(mail, order)
+    send_order_confirmation_resend(order) 
 
     session['cart'] = []
     session.pop('checkout_info', None)
@@ -480,6 +488,56 @@ def admin_update_order_status(id):
     db.session.commit()
     flash('Statut mis à jour', 'success')
     return redirect(url_for('admin_orders'))
+
+@app.route('/contact', methods=['POST'])
+def submit_contact():
+    """Soumet un message de contact"""
+    try:
+        message = ContactMessage(
+            name=request.form['name'],
+            email=request.form['email'],
+            message=request.form['message']
+        )
+        db.session.add(message)
+        db.session.commit()
+        
+        flash('Merci ! Votre message a été envoyé avec succès.', 'success')
+    except Exception as e:
+        flash('Erreur lors de l\'envoi du message.', 'danger')
+        print(f"Erreur contact: {e}")
+    
+    return redirect(request.referrer or url_for('index'))
+
+
+@app.route('/admin/messages')
+@login_required
+def admin_messages():
+    """Liste des messages de contact"""
+    messages = ContactMessage.query.order_by(ContactMessage.created_at.desc()).all()
+    unread_count = ContactMessage.query.filter_by(is_read=False).count()
+    return render_template('admin/messages.html', messages=messages, unread_count=unread_count)
+
+
+@app.route('/admin/messages/<int:id>/read')
+@login_required
+def admin_mark_read(id):
+    """Marquer un message comme lu"""
+    message = ContactMessage.query.get_or_404(id)
+    message.is_read = True
+    db.session.commit()
+    flash('Message marqué comme lu', 'success')
+    return redirect(url_for('admin_messages'))
+
+
+@app.route('/admin/messages/<int:id>/delete')
+@login_required
+def admin_delete_message(id):
+    """Supprimer un message"""
+    message = ContactMessage.query.get_or_404(id)
+    db.session.delete(message)
+    db.session.commit()
+    flash('Message supprimé', 'success')
+    return redirect(url_for('admin_messages'))
 
 def init_db():
     with app.app_context():

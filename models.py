@@ -99,3 +99,15 @@ class OrderItem(db.Model):
     order = db.relationship('Order', backref=db.backref('items', lazy=True))
     product = db.relationship('Product')
     variant = db.relationship('ProductVariant')  # NOUVEAU
+
+class ContactMessage(db.Model):
+    """Messages de contact des visiteurs"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<ContactMessage {self.name} - {self.email}>'

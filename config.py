@@ -9,6 +9,7 @@ class Config:
     PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', 'AfYL5NT82add83YEaYavbcSWW-KxYXH2PU3aThFXZsu8ZcvA-biUwdy8Ra1qyaxvO1YQaqXmpEiqbp5q')
     PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'sandbox')
 
+    # ⚠️ Configuration Gmail (ancienne, gardée pour compatibilité)
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 587
     MAIL_USE_TLS = True
@@ -16,6 +17,9 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'opaline.parfums@gmail.com')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'uznuwxgbaspghwgu')
     MAIL_DEFAULT_SENDER = 'OPALINE PARFUMS <opaline.parfums@gmail.com>'
+
+    # ✅ Configuration Resend (CORRIGÉ)
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY', 're_bqZgxv8L_9j1JvSJKzYRUfh3S7zFPMAJv')
 
     @staticmethod
     def get_database_uri():
