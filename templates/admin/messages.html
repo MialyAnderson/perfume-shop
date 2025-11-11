@@ -1,0 +1,62 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Messages de contact - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-envelope me-2"></i>Messages de contact</h2>
+        {% if unread_count > 0 %}
+        <span class="badge bg-danger" style="font-size: 1.2rem;">{{ unread_count }} non lu(s)</span>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Date</th>
+                    <th>Nom</th>
+                    <th>Email</th>
+                    <th>Message</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for msg in messages %}
+                <tr {% if not msg.is_read %}style="background-color: #fff3cd;"{% endif %}>
+                    <td>{{ msg.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td><strong>{{ msg.name }}</strong></td>
+                    <td><a href="mailto:{{ msg.email }}">{{ msg.email }}</a></td>
+                    <td>{{ msg.message[:100] }}{% if msg.message|length > 100 %}...{% endif %}</td>
+                    <td>
+                        {% if msg.is_read %}
+                        <span class="badge bg-secondary">Lu</span>
+                        {% else %}
+                        <span class="badge bg-warning">Non lu</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not msg.is_read %}
+                        <a href="{{ url_for('admin_mark_read', id=msg.id) }}" class="btn btn-sm btn-success">
+                            <i class="fas fa-check"></i> Marquer lu
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('admin_delete_message', id=msg.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Supprimer ce message ?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>Aucun message pour le moment.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
