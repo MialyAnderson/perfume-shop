@@ -26,11 +26,6 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 
 db.init_app(app)
 
-# ⚠️ TEMPORAIRE : Force la recréation de toutes les tables
-with app.app_context():
-    db.drop_all()  # Supprime toutes les tables
-    db.create_all()  # Recrée avec la nouvelle structure
-
 migrate = Migrate(app, db)
 mail = Mail(app)
 
