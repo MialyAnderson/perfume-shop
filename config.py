@@ -26,6 +26,14 @@ class Config:
         database_url = os.environ.get('DATABASE_URL')
         if database_url and database_url.startswith('postgres://'):
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        
+        # ✅ SSL requis pour Render
+        if database_url and 'postgresql://' in database_url:
+            if '?' in database_url:
+                database_url += '&sslmode=require'
+            else:
+                database_url += '?sslmode=require'
+        
         return database_url or 'sqlite:///perfume_shop.db'
     
     SQLALCHEMY_DATABASE_URI = get_database_uri.__func__()
