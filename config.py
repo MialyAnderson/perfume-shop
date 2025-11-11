@@ -14,7 +14,7 @@ class Config:
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'opaline.parfums@gmail.com')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'VOTRE_APP_PASSWORD_ICI')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'uznuwxgbaspghwgu')
     MAIL_DEFAULT_SENDER = 'OPALINE PARFUMS <opaline.parfums@gmail.com>'
 
     @staticmethod
