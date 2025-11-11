@@ -316,7 +316,7 @@
                                 <p class="order-item-meta">Quantité: {{ item.quantity }}</p>
                             </div>
                             <div class="order-item-price">
-                                <p>${{ "%.2f"|format(item.product.price) }} × {{ item.quantity }}</p>
+                                <p>${{ "%.2f"|format(item.variant.price) }} × {{ item.quantity }} ({{ item.variant.size_ml }}ml)</p>
                                 <strong>${{ "%.2f"|format(item.subtotal) }}</strong>
                             </div>
                         </div>

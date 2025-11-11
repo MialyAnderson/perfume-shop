@@ -7,9 +7,12 @@ def send_order_confirmation(mail, order):
         for item in order.items:
             products_html += f"""
             <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;">{item.product.name}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">
+                    {item.product.name}<br>
+                    <small style="color: #666;">({item.variant.size_ml}ml)</small>
+                </td>
                 <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd;">{item.quantity}</td>
-                <td style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">{item.product.price:.2f}$</td>
+                <td style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">{item.variant.price:.2f}$</td>
                 <td style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;"><strong>{item.subtotal:.2f}$</strong></td>
             </tr>
             """
@@ -36,7 +39,7 @@ def send_order_confirmation(mail, order):
                                 <tr style="background-color: #f0f0f0;">
                                     <th style="padding: 12px; text-align: left;">Produit</th>
                                     <th style="padding: 12px; text-align: center;">Qté</th>
-                                    <th style="padding: 12px; text-align: right;">Prix</th>
+                                    <th style="padding: 12px; text-align: right;">Prix unit.</th>
                                     <th style="padding: 12px; text-align: right;">Total</th>
                                 </tr>
                             </thead>
@@ -84,9 +87,9 @@ def send_order_confirmation(mail, order):
         )
         
         mail.send(msg)
-        print(f"Email envoyé à {order.customer_email}")
+        print(f"✅ Email envoyé à {order.customer_email}")
         return True
         
     except Exception as e:
-        print(f"Erreur email: {e}")
+        print(f"⚠️ Erreur email: {e}")
         return False
