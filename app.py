@@ -26,6 +26,26 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 
 db.init_app(app)
 
+with app.app_context():
+    try:
+        from sqlalchemy import text
+        # Supprimer dans le bon ordre
+        db.session.execute(text('DROP TABLE IF EXISTS order_item CASCADE'))
+        db.session.execute(text('DROP TABLE IF EXISTS "order" CASCADE'))
+        db.session.execute(text('DROP TABLE IF EXISTS review CASCADE'))
+        db.session.execute(text('DROP TABLE IF EXISTS product_variant CASCADE'))
+        db.session.execute(text('DROP TABLE IF EXISTS product CASCADE'))
+        db.session.execute(text('DROP TABLE IF EXISTS admin CASCADE'))
+        db.session.commit()
+        print("✅ Anciennes tables supprimées")
+    except Exception as e:
+        print(f"⚠️ Erreur lors de la suppression: {e}")
+        db.session.rollback()
+    
+    # Recréer toutes les tables
+    db.create_all()
+    print("✅ Nouvelles tables créées avec product_variant")
+    
 migrate = Migrate(app, db)
 mail = Mail(app)
 
