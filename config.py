@@ -29,14 +29,25 @@ class Config:
     SQLALCHEMY_DATABASE_URI = get_database_uri.__func__()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # ✅ CONFIGURATION SSL COMPLÈTE POUR POSTGRESQL
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-        'connect_args': {
-            'sslmode': 'require',
-            'connect_timeout': 10,
-        }
-    }
+    # ✅ SSL SEULEMENT SI POSTGRESQL (pas en local avec SQLite)
+    @staticmethod
+    def get_engine_options():
+        database_url = os.environ.get('DATABASE_URL')
+        
+        # Si on utilise PostgreSQL (Render), ajouter les options SSL
+        if database_url and 'postgresql://' in database_url:
+            return {
+                'pool_pre_ping': True,
+                'pool_recycle': 300,
+                'connect_args': {
+                    'sslmode': 'require',
+                    'connect_timeout': 10,
+                }
+            }
+        
+        # Si SQLite (local), pas d'options spéciales
+        return {}
+    
+    SQLALCHEMY_ENGINE_OPTIONS = get_engine_options.__func__()
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}

@@ -9,7 +9,7 @@ from flask_session import Session  # ✅ AJOUTE CECI
 from config import Config, ALLOWED_EXTENSIONS
 from models import db, Admin, Product, Order, OrderItem, Review, ProductVariant, ContactMessage
 from utils import get_cart, get_cart_total, get_cart_items, save_uploaded_file
-from email_service import send_order_confirmation_resend
+from email_service import send_order_confirmation_gmail, send_order_confirmation_resend
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -278,7 +278,7 @@ def payment_success():
         order_item = OrderItem(
             order_id=order.id,
             product_id=item['product'].id,
-            variant_id=item['variant'].id,  # ⭐ AJOUTÉ
+            variant_id=item['variant'].id,
             quantity=item['quantity'],
             subtotal=item['subtotal']
         )
@@ -286,7 +286,8 @@ def payment_success():
     
     db.session.commit()
 
-    send_order_confirmation_resend(order) 
+    # ✅ ENVOI EMAIL AVEC GMAIL
+    send_order_confirmation_gmail(order, mail) 
 
     session['cart'] = []
     session.pop('checkout_info', None)
