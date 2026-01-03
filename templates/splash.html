@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opaline Parfums</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+
+        /* Animation des portes */
+        .door-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 99999;
+        }
+
+        .door-left, .door-right {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            transition: transform 1.8s cubic-bezier(0.77, 0, 0.175, 1);
+            overflow: hidden;
+        }
+
+        .door-left {
+            left: 0;
+            transform-origin: left;
+            border-right: 2px solid #d4af37;
+        }
+
+        .door-right {
+            right: 0;
+            transform-origin: right;
+            border-left: 2px solid #d4af37;
+        }
+
+        .door-overlay.opened .door-left {
+            transform: translateX(-100%);
+        }
+
+        .door-overlay.opened .door-right {
+            transform: translateX(100%);
+        }
+
+        /* Décoration des portes */
+        .door-decoration {
+            position: absolute;
+            top: 50%;
+            width: 80px;
+            height: 150px;
+            transform: translateY(-50%);
+        }
+
+        .door-left .door-decoration {
+            right: 20px;
+            border-right: 3px solid #d4af37;
+            border-top: 3px solid #d4af37;
+            border-bottom: 3px solid #d4af37;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .door-right .door-decoration {
+            left: 20px;
+            border-left: 3px solid #d4af37;
+            border-top: 3px solid #d4af37;
+            border-bottom: 3px solid #d4af37;
+            border-radius: 10px 0 0 10px;
+        }
+
+        .door-handle {
+            position: absolute;
+            top: 50%;
+            width: 40px;
+            height: 15px;
+            background: linear-gradient(135deg, #d4af37 0%, #f4e8c1 50%, #d4af37 100%);
+            border-radius: 30px;
+            transform: translateY(-50%);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.6);
+            animation: handleGlow 2s ease-in-out infinite;
+        }
+
+        .door-left .door-handle {
+            right: 40px;
+        }
+
+        .door-right .door-handle {
+            left: 40px;
+        }
+
+        @keyframes handleGlow {
+            0%, 100% {
+                box-shadow: 0 4px 15px rgba(212, 175, 55, 0.6);
+            }
+            50% {
+                box-shadow: 0 4px 25px rgba(212, 175, 55, 1);
+            }
+        }
+
+        /* Logo central */
+        .door-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 100000;
+            transition: opacity 0.8s ease;
+        }
+
+        .door-overlay.opened .door-logo {
+            opacity: 0;
+        }
+
+        .door-logo-icon {
+            font-size: 6rem;
+            color: #d4af37;
+            margin-bottom: 1rem;
+            animation: logoFloat 3s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.8),
+                         0 0 60px rgba(212, 175, 55, 0.6);
+        }
+
+        @keyframes logoFloat {
+            0%, 100% {
+                transform: translateY(0) scale(1);
+            }
+            50% {
+                transform: translateY(-20px) scale(1.05);
+            }
+        }
+
+        .door-logo-text {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 10px;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            animation: textGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes textGlow {
+            0%, 100% {
+                opacity: 1;
+                text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            }
+            50% {
+                opacity: 0.9;
+                text-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+            }
+        }
+
+        .door-logo-tagline {
+            font-size: 1.2rem;
+            color: #d4af37;
+            letter-spacing: 4px;
+            margin-top: 0.5rem;
+            font-weight: 300;
+        }
+
+        /* Particules dorées */
+        .door-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .door-particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #d4af37;
+            border-radius: 50%;
+            opacity: 0;
+            box-shadow: 0 0 10px #d4af37;
+            animation: particleFloat 6s ease-in-out infinite;
+        }
+
+        .door-left .door-particle:nth-child(1) { left: 20%; animation-delay: 0s; }
+        .door-left .door-particle:nth-child(2) { left: 40%; animation-delay: 1s; }
+        .door-left .door-particle:nth-child(3) { left: 60%; animation-delay: 2s; }
+        .door-left .door-particle:nth-child(4) { left: 80%; animation-delay: 0.5s; }
+
+        .door-right .door-particle:nth-child(1) { right: 20%; animation-delay: 1.5s; }
+        .door-right .door-particle:nth-child(2) { right: 40%; animation-delay: 0.5s; }
+        .door-right .door-particle:nth-child(3) { right: 60%; animation-delay: 2.5s; }
+        .door-right .door-particle:nth-child(4) { right: 80%; animation-delay: 1s; }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            10%, 90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+        }
+
+        /* Lueur centrale */
+        .door-glow {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 4px;
+            height: 100%;
+            transform: translateX(-50%);
+            background: linear-gradient(to bottom, 
+                transparent 0%, 
+                #d4af37 20%, 
+                #f4e8c1 50%, 
+                #d4af37 80%, 
+                transparent 100%);
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.8),
+                        0 0 60px rgba(212, 175, 55, 0.6);
+            animation: glowPulse 2s ease-in-out infinite;
+            z-index: 99998;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% {
+                opacity: 0.6;
+                box-shadow: 0 0 30px rgba(212, 175, 55, 0.8),
+                            0 0 60px rgba(212, 175, 55, 0.6);
+            }
+            50% {
+                opacity: 1;
+                box-shadow: 0 0 50px rgba(212, 175, 55, 1),
+                            0 0 100px rgba(212, 175, 55, 0.8);
+            }
+        }
+
+        .door-overlay.opened .door-glow {
+            opacity: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .door-logo-icon {
+                font-size: 4rem;
+            }
+
+            .door-logo-text {
+                font-size: 2rem;
+                letter-spacing: 6px;
+            }
+
+            .door-logo-tagline {
+                font-size: 1rem;
+                letter-spacing: 3px;
+            }
+
+            .door-decoration {
+                width: 60px;
+                height: 120px;
+            }
+        }
+
+        /* Fade out pour la transition */
+        body.fade-out {
+            animation: fadeOut 0.5s ease forwards;
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ANIMATION PORTE -->
+    <div class="door-overlay" id="doorOverlay">
+        <!-- Porte gauche -->
+        <div class="door-left">
+            <div class="door-particles">
+                <div class="door-particle"></div>
+                <div class="door-particle"></div>
+                <div class="door-particle"></div>
+                <div class="door-particle"></div>
+            </div>
+            <div class="door-decoration"></div>
+            <div class="door-handle"></div>
+        </div>
+
+        <!-- Porte droite -->
+        <div class="door-right">
+            <div class="door-particles">
+                <div class="door-particle"></div>
+                <div class="door-particle"></div>
+                <div class="door-particle"></div>
+                <div class="door-particle"></div>
+            </div>
+            <div class="door-decoration"></div>
+            <div class="door-handle"></div>
+        </div>
+
+        <!-- Lueur centrale -->
+        <div class="door-glow"></div>
+
+        <!-- Logo central -->
+        <div class="door-logo">
+            <div class="door-logo-icon">
+                <i class="fas fa-gem"></i>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Démarrer l'animation automatiquement
+        window.addEventListener('load', function() {
+            const doorOverlay = document.getElementById('doorOverlay');
+            
+            // Attendre 2 secondes avant d'ouvrir les portes
+            setTimeout(() => {
+                doorOverlay.classList.add('opened');
+                
+                // Après l'ouverture complète, rediriger vers l'accueil
+                setTimeout(() => {
+                    // Fade out smooth
+                    document.body.classList.add('fade-out');
+                    
+                    // Redirection après le fade
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('index') }}";
+                    }, 500);
+                }, 1800); // Temps de l'animation d'ouverture
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Avis Clients - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-star text-warning me-2"></i>
+        Avis Clients
+        {% if pending_count > 0 %}
+        <span class="badge bg-warning text-dark">{{ pending_count }} en attente</span>
+        {% endif %}
+    </h2>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Ville</th>
+                    <th>Note</th>
+                    <th>Avis</th>
+                    <th>Date</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for review in reviews %}
+                <tr {% if not review.is_approved %}class="table-warning"{% endif %}>
+                    <td><strong>{{ review.author_name }}</strong></td>
+                    <td>{{ review.author_city or '-' }}</td>
+                    <td>
+                        {% for i in range(review.rating) %}
+                        <i class="fas fa-star text-warning"></i>
+                        {% endfor %}
+                        ({{ review.rating }}/5)
+                    </td>
+                    <td>
+                        <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ review.comment }}
+                        </div>
+                    </td>
+                    <td>{{ review.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td>
+                        {% if review.is_approved %}
+                        <span class="badge bg-success">Publié</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">En attente</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not review.is_approved %}
+                        <a href="{{ url_for('admin_approve_review', id=review.id) }}" 
+                           class="btn btn-sm btn-success"
+                           onclick="return confirm('Approuver cet avis ?')">
+                            <i class="fas fa-check"></i> Approuver
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('admin_delete_review', id=review.id) }}" 
+                           class="btn btn-sm btn-danger"
+                           onclick="return confirm('Supprimer cet avis ?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p>Aucun avis pour le moment</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

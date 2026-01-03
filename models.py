@@ -111,3 +111,16 @@ class ContactMessage(db.Model):
     
     def __repr__(self):
         return f'<ContactMessage {self.name} - {self.email}>'
+
+class SiteReview(db.Model):
+    """Avis clients sur le site (témoignages)"""
+    id = db.Column(db.Integer, primary_key=True)
+    author_name = db.Column(db.String(100), nullable=False)
+    author_city = db.Column(db.String(100))  # Montréal, Laval, etc.
+    rating = db.Column(db.Integer, nullable=False)  # 1 à 5 étoiles
+    comment = db.Column(db.Text, nullable=False)
+    is_approved = db.Column(db.Boolean, default=False)  # Modération admin
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<SiteReview {self.author_name} - {self.rating}★>'

@@ -7,7 +7,7 @@ from datetime import datetime
 import os
 from flask_session import Session  # ✅ AJOUTE CECI
 from config import Config, ALLOWED_EXTENSIONS
-from models import db, Admin, Product, Order, OrderItem, Review, ProductVariant, ContactMessage
+from models import db, Admin, Product, Order, OrderItem, Review, ProductVariant, ContactMessage, SiteReview
 from utils import get_cart, get_cart_total, get_cart_items, save_uploaded_file
 from email_service import send_order_confirmation_gmail, send_order_confirmation_resend
 
@@ -44,12 +44,27 @@ def utility_processor():
     def get_unread_messages_count():
         from models import ContactMessage
         return ContactMessage.query.filter_by(is_read=False).count()
-    return dict(get_unread_messages_count=get_unread_messages_count)
+    
+    def get_pending_reviews_count():
+        from models import SiteReview
+        return SiteReview.query.filter_by(is_approved=False).count()
+    
+    return dict(
+        get_unread_messages_count=get_unread_messages_count,
+        get_pending_reviews_count=get_pending_reviews_count
+    )
 
 @app.route('/')
+def splash():
+    return render_template('splash.html')
+
+
+@app.route('/home')
 def index():
+    from models import SiteReview
     products = Product.query.filter_by(is_active=True).limit(6).all()
-    return render_template('index.html', products=products)
+    reviews = SiteReview.query.filter_by(is_approved=True).order_by(SiteReview.created_at.desc()).all()
+    return render_template('index.html', products=products, reviews=reviews)
 
 @app.route('/catalog')
 def catalog():
@@ -257,6 +272,7 @@ def payment_success():
     checkout_info = session['checkout_info']
     order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{Order.query.count() + 1:03d}"
     
+    # Créer la commande
     order = Order(
         order_number=order_number,
         customer_email=checkout_info['email'],
@@ -273,8 +289,9 @@ def payment_success():
     db.session.add(order)
     db.session.commit()
 
-    # ✅ CORRECTION : Ajouter variant_id
+    # ✅ Ajouter les items ET décrémenter le stock
     for item in get_cart_items():
+        # Créer l'OrderItem
         order_item = OrderItem(
             order_id=order.id,
             product_id=item['product'].id,
@@ -283,12 +300,24 @@ def payment_success():
             subtotal=item['subtotal']
         )
         db.session.add(order_item)
+        
+        # ⭐ DÉCRÉMENTER LE STOCK DE LA VARIANTE
+        variant = ProductVariant.query.get(item['variant'].id)
+        if variant:
+            variant.stock -= item['quantity']
+            
+            # 🔒 Empêcher le stock négatif (sécurité)
+            if variant.stock < 0:
+                variant.stock = 0
+            
+            print(f"✅ Stock mis à jour pour {item['product'].name} ({variant.size_ml}ml): {variant.stock + item['quantity']} → {variant.stock}")
     
     db.session.commit()
 
-    # ✅ ENVOI EMAIL AVEC GMAIL
+    # ✅ Envoi email avec Gmail
     send_order_confirmation_gmail(order, mail) 
 
+    # Vider le panier
     session['cart'] = []
     session.pop('checkout_info', None)
     session.modified = True
@@ -508,6 +537,62 @@ def submit_contact():
         print(f"Erreur contact: {e}")
     
     return redirect(request.referrer or url_for('index'))
+
+@app.route('/submit-review', methods=['POST'])
+def submit_review():
+    """Soumet un avis sur le site"""
+    from models import SiteReview
+    
+    try:
+        review = SiteReview(
+            author_name=request.form['author_name'],
+            author_city=request.form.get('author_city', ''),
+            rating=int(request.form['rating']),
+            comment=request.form['comment']
+        )
+        db.session.add(review)
+        db.session.commit()
+        
+        flash('Merci pour votre avis ! Il sera publié après validation.', 'success')
+    except Exception as e:
+        flash('Erreur lors de l\'envoi de votre avis.', 'danger')
+        print(f"Erreur review: {e}")
+    
+    return redirect(url_for('index'))
+
+
+@app.route('/admin/reviews')
+@login_required
+def admin_reviews():
+    """Liste des avis clients"""
+    from models import SiteReview
+    reviews = SiteReview.query.order_by(SiteReview.created_at.desc()).all()
+    pending_count = SiteReview.query.filter_by(is_approved=False).count()
+    return render_template('admin/reviews.html', reviews=reviews, pending_count=pending_count)
+
+
+@app.route('/admin/reviews/<int:id>/approve')
+@login_required
+def admin_approve_review(id):
+    """Approuver un avis"""
+    from models import SiteReview
+    review = SiteReview.query.get_or_404(id)
+    review.is_approved = True
+    db.session.commit()
+    flash('Avis approuvé et publié', 'success')
+    return redirect(url_for('admin_reviews'))
+
+
+@app.route('/admin/reviews/<int:id>/delete')
+@login_required
+def admin_delete_review(id):
+    """Supprimer un avis"""
+    from models import SiteReview
+    review = SiteReview.query.get_or_404(id)
+    db.session.delete(review)
+    db.session.commit()
+    flash('Avis supprimé', 'success')
+    return redirect(url_for('admin_reviews'))
 
 
 @app.route('/admin/messages')
